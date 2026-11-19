@@ -1,27 +1,27 @@
 # TripMint — Optimiseur de Voyages Multi-Critères à Bas Coût
 
-**TripMint** est une application web Full Stack permettant de trouver et d'organiser des voyages au meilleur prix (**avion, train, et à terme hébergement**) à partir d'un budget maximum et d'une fenêtre de dates flexibles.
+**TripMint** est une application web Full Stack permettant de trouver et d'organiser des voyages au meilleur prix (**avion, puis train et hébergement**) à partir d'un budget maximum et d'une fenêtre de dates fixes ou flexibles.
 
 ---
 
 ## Vision & Proposition de Valeur
 
-**TripMint** combine la précision d'un comparateur classique et la puissance d'un moteur d'exploration budgétaire :
-* **Double mode de recherche (Dates fixes & flexibles) :** Recherche directe sur des dates précises (aller simple ou aller-retour exact) ou recherche exploratoire à partir d'une ville de départ, d'un plafond budgétaire, d'une durée de séjour et d'une plage de dates flexibles.
-* **Historique & Tendances tarifaires :** Relevé périodique des prix afin de détecter les baisses significatives par rapport à la moyenne historique d'un trajet.
-* **Architecture extensible multi-fournisseurs :** Conception modulaire permettant d'agréger différents modes de transport (vols, trains) et d'intégrer l'hébergement (hôtels, appartements) sans refonte du moteur de recherche.
+**TripMint** combine la précision d'un comparateur classique et la souplesse d'un moteur d'exploration budgétaire :
+
+* **Recherche multi-critères (Dates fixes & flexibles) :** Recherche directe sur des dates précises ou exploration budgétaire à partir d'une ville de départ, d'un budget plafond et d'une fenêtre de dates.
+* **Historisation & Tendances tarifaires :** Suivi des recherches et relevé périodique des prix pour identifier les meilleures opportunités.
+* **Architecture pragmatique et évolutive :** Monolithe **Spring MVC** classique et lisible dès la V1, prêt à intégrer de nouveaux fournisseurs (train, hébergement) sans sur-ingénierie.
+
 ---
 
 ## Stack Technique & Choix d'Architecture
 
 | Couche | Technologies | Points clés d'implémentation |
 | :--- | :--- | :--- |
-| **Back-end** | **Java 25 (LTS)**, **Spring Boot 4.x**, **Spring Framework 7.x** | API RESTful, `Records` pour les DTOs, `Sealed Classes`, parallélisation des appels fournisseurs via **Virtual Threads** et *Scoped Values*, authentification JWT. |
-| **Architecture** | **Monolithe Modulaire (Spring Modulith)**, **SOLID**, **Design Patterns (Strategy / Adapter)** | Abstraction des sources de données (`TransportProvider`, `StayProvider`) permettant l'ajout indépendant des connecteurs Avion, Train et Hébergement. |
-| **Base de données** | **PostgreSQL 18+**, **Spring Data JPA 5**, **Flyway** | Migrations SQL versionnées, prévention du problème **N+1** (`JOIN FETCH`, `@EntityGraph`), indexation composite et **Window Functions** pour l'analyse des prix. |
-| **Front-end** | **Angular 22+**, **TypeScript 5.8+**, **RxJS** | **Standalone Components**, détection de changement **Zoneless**, gestion d'état réactive avec **Angular Signals**, **Reactive Forms** avec validateurs personnalisés. |
-| **Tests & Qualité** | **JUnit 5**, **Mockito**, **Testcontainers**, **Jasmine** | Tests unitaires sur le moteur de scoring/budget, tests d'intégration API/BDD (`@WebMvcTest`, `@DataJpaTest`) et tests de composants/services Angular. |
-| **DevOps & CI/CD** | **Docker Compose**, **GitHub Actions** | Environnement local conteneurisé (PostgreSQL) et pipeline CI automatisé sur chaque Pull Request (build + tests Back & Front). |
+| **Back-end** | **Java 25 (LTS)**, **Spring Boot 4.x** (Spring MVC) | Architecture en couches classique (`controller`, `service`, `client`, `repository`, `model`, `config`), DTOs en Java `record`, validation Bean Validation et `@RestControllerAdvice` global. |
+| **Base de données & Migrations** | **Flyway** dès la V1, **H2** (local/tests), **PostgreSQL** (déploiement) | Migrations SQL standard compatibles H2 (`MODE=PostgreSQL`) et PostgreSQL, validation stricte du schéma par Hibernate (`ddl-auto=validate`). |
+| **Front-end** | **Angular 22+**, **TypeScript strict**, **SCSS** | **Standalone Components**, détection de changement **Zoneless**, proxy local `/api` → `http://localhost:8080`. |
+| **Qualité & CI** | **JUnit 5**, **Spring Boot Test**, **GitHub Actions** | Pipeline CI automatique sur chaque Pull Request vers `main` : `./mvnw test` (démarrage Spring + Flyway sur H2) et `npm ci && npm run build`. |
 
 ---
 
@@ -30,61 +30,90 @@
 ```text
 tripmint/
 ├── .github/
-│   ├── ISSUE_TEMPLATE/        # Modèles de User Stories
-│   └── workflows/             # Pipelines CI/CD GitHub Actions
-├── backend/                   # API REST Spring Boot 4 (Java 25 / Maven)
-│   ├── src/main/java/...
+│   ├── ISSUE_TEMPLATE/
+│   │   └── user_story.md         # Modèle de User Story
+│   └── workflows/
+│       └── ci.yml                # Pipeline CI GitHub Actions (Back + Front)
+├── backend/                      # API REST Spring Boot 4 / Spring MVC (Java 25 / Maven)
+│   ├── src/main/java/com/tripmint/
+│   │   ├── config/               # Configuration globale
+│   │   ├── controller/           # Contrôleurs REST & @RestControllerAdvice
+│   │   ├── service/              # Logique métier
+│   │   ├── client/               # Clients HTTP externes (ex. Amadeus)
+│   │   ├── repository/           # Accès données Spring Data JPA
+│   │   └── model/                # Entités JPA & DTOs
 │   └── src/main/resources/
-│       └── db/migration/      # Scripts SQL Flyway
-├── frontend/                  # Application SPA Angular 22+
-├── docs/                      # Architecture, schémas MCD et décisions techniques
-├── docker-compose.yml         # Infrastructure locale (PostgreSQL 18+)
-├── .env.example               # Variables d'environnement requises
+│       ├── application.yml       # Profil local actif par défaut
+│       ├── application-local.yml # H2 en mémoire (mode PostgreSQL) + console H2
+│       ├── application-prod.yml  # PostgreSQL via variables d'environnement
+│       └── db/migration/         # Scripts SQL Flyway (V1__init.sql, ...)
+├── frontend/                     # SPA Angular 22+ (Standalone, Zoneless, SCSS, strict)
+│   └── proxy.conf.json           # Redirection /api -> http://localhost:8080
+├── docs/                         # Diagrammes UML, schémas MCD et contrats JSON
+├── .env.example                  # Modèle de variables d'environnement
+├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Roadmap Technique
+## Roadmap Fonctionnelle
 
-* [ ] **Phase 1 — Socle & API Core :** Initialisation du monorepo, modélisation PostgreSQL/Flyway, API REST de gestion des recherches flexibles, intégration d'un premier fournisseur de vols (sandbox) avec parallélisation via Virtual Threads.
-* [ ] **Phase 2 — Historisation, SQL Avancé & CI/CD :** Tâche planifiée de suivi des tarifs, requêtes analytiques PostgreSQL (tendances et variations de prix), couverture de tests JUnit/Mockito/Testcontainers et pipeline GitHub Actions.
-* [ ] **Phase 3 — Interface Utilisateur Angular :** Développement du dashboard de recherche multi-critères (Reactive Forms), affichage dynamique des résultats piloté par Signals/Zoneless et fiche détaillée d'itinéraire.
-* [ ] **Phase 4 — Extensions Multi-Modales (V2) :** Ajout du connecteur ferroviaire (train), module de comparaison d'hébergements et alertes automatiques de baisse de prix.
+### V1 — Socle & Recherche de Vols (MVP)
+* Initialisation du monorepo (Spring MVC, Flyway, H2 local / PostgreSQL prod, Angular 22+ Zoneless, CI GitHub Actions).
+* Endpoint de santé (`/api/v1/health`), gestion globale des erreurs API et journalisation des recherches (`search_logs`).
+* Intégration du fournisseur de vols **Amadeus** (dates fixes puis dates flexibles sous contrainte de budget).
+* Interface Angular de recherche de vols et d'affichage des résultats triés par prix.
+
+### V2 — Historisation, Tendances & Comptes Utilisateurs
+* Relevé périodique des prix et détection de baisses tarifaires par rapport à l'historique.
+* Sauvegarde de recherches favorites et alertes de prix.
+* Authentification utilisateur et déploiement continu sur PostgreSQL managé.
+
+### V3 — Extension Multi-Modale (Train & Hébergement)
+* Intégration d'un connecteur ferroviaire (comparaison avion vs train).
+* Intégration de l'hébergement (hôtels / séjours) pour un calcul de budget global transport + logement.
+* Recommandations d'itinéraires optimisés budget / durée.
 
 ---
 
 ## Démarrage Rapide (Local)
 
-### Prérequis
-* **Java 25 (LTS)** & **Maven 3.9+**
-* **Node.js 24 LTS** & **Angular CLI**
-* **Docker** & **Docker Compose**
+Aucun serveur de base de données externe n'est requis en local : le profil `local` (actif par défaut) démarre automatiquement une base **H2 en mémoire** en mode compatibilité PostgreSQL avec exécution des migrations **Flyway**.
 
-### Installation
+### Prérequis
+* **Java 25 (LTS)**
+* **Node.js 24 LTS** (ou `>= 22.22.3`) & **npm**
+
+### Lancement
 ```bash
 # 1. Cloner le dépôt
-git clone [https://github.com/](https://github.com/)<ton-username>/tripmint.git
+git clone https://github.com/<ton-username>/tripmint.git
 cd tripmint
 
-# 2. Configurer les variables d'environnement
+# 2. Copier les variables d'environnement (utile pour Amadeus et le profil prod)
 cp .env.example .env
 
-# 3. Démarrer la base de données PostgreSQL
-docker compose up -d
+# 3. Lancer le back-end Spring Boot (profil local par défaut, port 8080)
+cd backend
+./mvnw spring-boot:run
+# API health : http://localhost:8080/api/v1/health
+# Console H2 : http://localhost:8080/h2-console (JDBC URL: jdbc:h2:mem:tripmint)
 
-# 4. Lancer le back-end Spring Boot
-cd backend && ./mvnw spring-boot:run
-
-# 5. Lancer le front-end Angular (dans un second terminal)
-cd frontend && npm install && ng serve
+# 4. Lancer le front-end Angular avec proxy /api (dans un second terminal)
+cd frontend
+npm ci
+npm start
+# Application : http://localhost:4200
 ```
+
+### Profil Production (`prod`)
+Pour exécuter l'application sur **PostgreSQL**, définir `SPRING_PROFILES_ACTIVE=prod` ainsi que `DB_URL`, `DB_USERNAME` et `DB_PASSWORD` (voir `.env.example`).
 
 ---
 
 ## Workflow de Développement
 
-Le projet est piloté via **GitHub Projects** :
-1. Chaque fonctionnalité ou tâche technique fait l'objet d'une **User Story** (Issue).
+1. Chaque fonctionnalité ou tâche technique fait l'objet d'une **User Story** créée depuis `.github/ISSUE_TEMPLATE/user_story.md`.
 2. Développement isolé sur une branche dédiée (`feature/<id>-nom-fonctionnalite`).
-3. Ouverture d'une **Pull Request** vers `main` soumise à la validation automatique de la CI avant merge.
+3. Ouverture d'une **Pull Request** vers `main`, validée automatiquement par la CI GitHub Actions (`./mvnw test` + `npm ci && npm run build`).
