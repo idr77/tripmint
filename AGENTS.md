@@ -1,99 +1,106 @@
 # AGENTS.md — Règles & Conventions du projet TripMint
 
-Ce fichier définit les principes d'ingénierie, les choix d'architecture et le workflow à respecter pour toute contribution (humaine ou IA) sur le monorepo **TripMint**.
+Ce fichier définit les principes d'ingénierie, les choix d'architecture, les règles de collaboration avec l'IA et le workflow à respecter pour toute contribution sur le monorepo **TripMint**.
 
 ---
 
 ## 1. Principes d'ingénierie & Qualité du code (Priorité absolue)
 
 ### Principes fondamentaux
-* **KISS (*Keep It Simple, Stupid*) & YAGNI :** privilégier la solution la plus simple, directe et lisible qui répond au besoin actuel. Ne jamais introduire d'abstraction spéculative ou d'infrastructure anticipée (pas de Spring Modulith, pas de microservices, pas de couches inutiles en V1).
-* **DRY (*Don't Repeat Yourself*) :** factoriser la logique métier dupliquée et les règles partagées, sans pour autant coupler artificiellement deux concepts métier différents qui se ressemblent par hasard.
+* **KISS (*Keep It Simple, Stupid*) & YAGNI :** privilégier la solution la plus simple, directe et lisible qui répond au besoin métier actuel. Ne jamais introduire d'abstraction spéculative ou d'infrastructure anticipée (pas de Spring Modulith, pas de microservices, pas de Virtual Threads, pas d'authentification, pas de NoSQL/Kubernetes en V1).
+* **DRY (*Don't Repeat Yourself*) :** factoriser la logique métier dupliquée et les règles partagées, sans coupler artificiellement deux concepts métier distincts qui se ressemblent par hasard.
 * **SOLID :**
-  * **S (Single Responsibility) :** une classe / méthode = une responsabilité claire (un contrôleur ne fait que du HTTP, un service porte le métier, un client parle à l'API externe, un repository parle à la BDD).
+  * **S (Single Responsibility) :** une classe / méthode = une responsabilité claire (contrôleur = HTTP, service = métier, client = API externe, repository = BDD).
   * **O (Open/Closed) :** concevoir les points d'extension réels (ex. futurs fournisseurs de transport) par interface plutôt que par chaînes de `if/else`.
   * **L (Liskov Substitution) :** toute implémentation d'une interface doit respecter strictement son contrat.
-  * **I (Interface Segregation) :** préférer des interfaces ciblées et petites plutôt que des contrats fourre-tout.
-  * **D (Dependency Inversion) :** dépendre d'abstractions pour les briques externes ou variables (fournisseurs, horloge `Clock`), et toujours injecter les dépendances par **constructeur**.
+  * **I (Interface Segregation) :** préférer des interfaces ciblées plutôt que des contrats fourre-tout.
+  * **D (Dependency Inversion) :** dépendre d'abstractions pour les briques externes ou variables (fournisseurs, `Clock`), et **toujours injecter les dépendances par constructeur**.
 
-### Design Patterns (au bon moment uniquement)
-Utiliser un design pattern **uniquement lorsqu'il résout un problème concret** du code :
-* **Adapter :** isoler les modèles/APIs des fournisseurs externes (ex. Amadeus) pour ne jamais faire fuiter leurs DTOs bruts dans la couche `service` ou les réponses REST TripMint.
-* **Strategy :** à introduire dès qu'il existe plusieurs algorithmes ou fournisseurs interchangeables (ex. plusieurs modes de recherche ou plusieurs connecteurs transport en V2/V3).
+### Design Patterns (uniquement quand le besoin existe)
+* **Adapter :** isoler les APIs externes (ex. Amadeus dans `com.tripmint.client.amadeus`) afin qu'aucun DTO brut externe ne fuite dans `service/` ou dans les réponses REST.
+* **Strategy :** introduire dès que plusieurs algorithmes ou fournisseurs interchangeables coexistent (ex. modes de recherche ou avion/train en V3).
 * **DTO / Record :** découpler systématiquement les contrats JSON exposés (Java `record`) des entités JPA (`@Entity`).
 
-### Lisibilité & Maintenabilité
-* **Nommage explicite :** noms de classes, méthodes et variables orientés métier (ex. `findCheapestFlights` plutôt que `processData`).
-* **Méthodes courtes & garde-fous :** privilégier les retours anticipés (*early returns*), éviter l'imbrication profonde et découper toute fonction qui mélange plusieurs niveaux d'abstraction.
+### Lisibilité, Erreurs & Transactions
+* **Nommage métier explicite :** noms de classes, méthodes et variables orientés domaine (ex. `findCheapestFlights` plutôt que `processData`).
+* **Méthodes courtes & garde-fous :** retours anticipés (*early returns*), éviter les imbrications profondes.
 * **Immutabilité par défaut :** Java `record` et champs `final` côté back-end ; `readonly`, `signal()` et `computed()` côté Angular.
-* **Gestion d'erreurs centralisée :** ne jamais avaler d'exception silencieusement ; laisser `GlobalExceptionHandler` (`@RestControllerAdvice`) formater les erreurs API de manière uniforme (`ApiError`).
-* **Zéro bruit :** pas de code mort, pas de code commenté, pas de commentaires paraphrasant le code (commenter uniquement le *pourquoi* quand il n'est pas évident).
-* **Sécurité & Secrets :** aucune clé API, mot de passe ou URL sensible en dur dans le code ou dans Git. Toute nouvelle variable d'environnement doit être documentée dans `.env.example`.
+* **Gestion d'erreurs centralisée :** ne jamais avaler d'exception silencieusement ; remonter des exceptions métier explicites traduites de manière uniforme en `ApiError` par `GlobalExceptionHandler` (`@RestControllerAdvice`), sans jamais exposer de stacktrace au client.
+* **Transactions (`@Transactional`) :**
+  * Placer les frontières transactionnelles dans la couche `service` (jamais dans `controller`).
+  * Utiliser `@Transactional(readOnly = true)` par défaut pour les lectures.
+  * **Règle d'or :** ne **jamais** ouvrir de transaction BDD (`@Transactional`) autour d'un appel HTTP externe (ex. Amadeus), afin de ne pas monopoliser une connexion du pool JDBC pendant la latence réseau.
+  * Conserver `spring.jpa.open-in-view=false` et éviter le problème N+1 (`JOIN FETCH`, `@EntityGraph`, projections DTO).
+* **Zéro bruit & Sécurité :** pas de code mort ou commenté ; aucune clé API ou mot de passe en dur dans le code ou Git ; toute variable d'environnement documentée dans `.env.example`.
 
 ---
 
-## 2. Architecture & Règles Techniques
+## 2. Architecture Cible & Règles Techniques
+
+Référence détaillée des choix et compromis : **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ### Vue Monorepo
-* `backend/` : API REST **Java 25 (LTS)** + **Spring Boot 4.x** en **Spring MVC classique** (sans Spring Modulith ni microservices).
-* `frontend/` : SPA **Angular 22+** en **Standalone Components**, détection **Zoneless** (sans `zone.js`), **SCSS** et **TypeScript strict** (`strict: true`, `strictTemplates: true`).
-* `docs/` : diagrammes UML, schémas MCD/MLD et contrats JSON (`/api/v1/*`).
+* `backend/` : API REST **Java 25 (LTS)** + **Spring Boot 4.x** en **Spring MVC classique** (sans Spring Modulith, sans Virtual Threads ni Auth en V1).
+* `frontend/` : SPA **Angular 22+** en **Standalone Components**, détection **Zoneless** (sans `zone.js`), **Angular Signals**, **SCSS** et **TypeScript strict** (`strict: true`, `strictTemplates: true`).
+* `docker-compose.yml` : instance **PostgreSQL 18** isolée (`postgres:18-alpine`, volume `/var/lib/postgresql`, healthcheck `pg_isready`).
+* `docs/` : [ARCHITECTURE.md](docs/ARCHITECTURE.md), [USER_STORIES.md](docs/USER_STORIES.md) (suivi JIRA), diagrammes UML, schémas MCD et contrats JSON (`/api/v1/*`).
 
 ### Règles Back-end (`backend/`)
-* **Organisation des packages (`com.tripmint`) :**
+* **Packages (`com.tripmint`) :**
   * En V1, conserver l'arborescence à plat par couche : `config`, `controller`, `service`, `client`, `repository`, `model`.
-  * **Ne pas** dupliquer de sous-packages sous chaque couche (`controller.xxx`, `service.xxx`, `model.xxx`).
-  * Sous-package autorisé pour isoler un fournisseur externe et ses DTOs bruts : `com.tripmint.client.<fournisseur>` (ex. `com.tripmint.client.amadeus`).
-  * Pivoter vers une organisation *Package by Feature* (`search/`, `alert/`, `user/`, `common/`) uniquement lorsqu'un second domaine métier complet apparaît (V2/V3).
+  * **Ne pas** créer de sous-packages miroir sous chaque couche (`controller.xxx`, `service.xxx`, `model.xxx`).
+  * Sous-package autorisé pour isoler un fournisseur externe : `com.tripmint.client.<fournisseur>` (ex. `com.tripmint.client.amadeus`).
+  * Pivoter vers *Package by Feature* (`search/`, `alert/`, `user/`, `common/`) uniquement en V2/V3 lorsqu'un second domaine métier apparaît.
 * **Base de données & Flyway :**
-  * **Flyway dès la V1** (`backend/src/main/resources/db/migration/V<n>__<description>.sql`). Ne jamais modifier une migration déjà mergée : toujours ajouter une nouvelle version `V<n+1>__...sql`.
-  * Écrire du **SQL standard compatible à la fois avec H2 (`MODE=PostgreSQL`) et PostgreSQL** (ex. `BIGINT GENERATED BY DEFAULT AS IDENTITY`, `NUMERIC(p, s)`, `TIMESTAMP WITH TIME ZONE`).
+  * **Flyway dès la V1** (`backend/src/main/resources/db/migration/V<n>__<description>.sql`). Ne jamais modifier une migration déjà mergée : ajouter une nouvelle version `V<n+1>__...sql`.
+  * Écrire du **SQL standard compatible H2 (`MODE=PostgreSQL`) et PostgreSQL 18**.
   * Conserver `spring.jpa.hibernate.ddl-auto=validate` et `spring.jpa.open-in-view=false`.
-  * Profil `local` actif par défaut (`application-local.yml` : H2 en mémoire + `/h2-console`) ; profil `prod` (`application-prod.yml` : PostgreSQL via `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`).
+  * Profil `local` actif par défaut (H2 en mémoire + `/h2-console`) ; profil `prod` pour PostgreSQL (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`), testable en local avec `docker-compose.yml`.
 * **Conventions REST & Spring Boot 4.x :**
-  * Préfixer tous les endpoints métier par `/api/v1/...` et valider les entrées avec Jakarta Validation (`@Valid`).
+  * Endpoints métier préfixés par `/api/v1/...`, validation stricte par `@Valid`.
   * Respecter les starters modulaires Spring Boot 4 (`spring-boot-starter-webmvc`, `spring-boot-starter-flyway`, `spring-boot-h2console`, `spring-boot-starter-*-test`).
 
 ### Règles Front-end (`frontend/`)
-* Composants **Standalone** uniquement (aucun `NgModule`).
-* Mode **Zoneless** : utiliser les **Angular Signals** (`signal`, `computed`, `effect`) et éviter toute dépendance à `zone.js`.
-* Utiliser **Reactive Forms** typés pour les formulaires de recherche.
-* Appeler le back-end via des chemins relatifs `/api/v1/...` (relayés en local vers `http://localhost:8080` via `proxy.conf.json`).
-* Garder des composants fins : déléguer les appels HTTP et transformations de données à des services dédiés (`providedIn: 'root'`).
+* **Standalone Components** uniquement (aucun `NgModule`).
+* **Zoneless + Signals :** utiliser `signal()`, `computed()`, `effect()` pour l'état UI ; réserver **RxJS** aux flux HTTP / asynchrones complexes (`switchMap`, `debounceTime`, annulation).
+* Utiliser **Reactive Forms** typés pour les formulaires.
+* Appeler l'API via des chemins relatifs `/api/v1/...` (proxy local `proxy.conf.json` → `http://localhost:8080`).
+* Composants fins : déléguer les appels HTTP et transformations aux services (`providedIn: 'root'`).
 
 ---
 
-## 3. Processus de Développement & Workflow
+## 3. Règles de Collaboration avec l'IA & Workflow
 
-### 1. User Stories
-Toute fonctionnalité ou tâche structurante démarre par une **User Story** (modèle `.github/ISSUE_TEMPLATE/user_story.md`) et est suivie dans `docs/USER_STORIES.md` en précisant :
-* **Besoin utilisateur :** *En tant que … / Je veux … / Afin de …*
-* **Critères d'acceptation** vérifiables et testables.
-* **Notes techniques** (impacts API, migrations Flyway, composants Angular, contrats dans `docs/`).
+### 1. Suivi JIRA obligatoire (`docs/USER_STORIES.md`)
+* Toute tâche correspond à un **EPIC** et une **User Story** dans [docs/USER_STORIES.md](docs/USER_STORIES.md) (modèle d'issue : `.github/ISSUE_TEMPLATE/user_story.md`).
+* **À chaque commit :** l'IA **doit mettre à jour [docs/USER_STORIES.md](docs/USER_STORIES.md)** (cases d'acceptation cochées, statut de la US, et entrée dans le journal des commits / colonne `Commits`).
 
-### 2. Conception & Documentation (`docs/`)
-Avant ou pendant l'implémentation d'un nouvel endpoint ou d'une évolution de schéma :
-* Documenter les contrats JSON et schémas (UML / MCD) dans `docs/`.
-* Mettre à jour `docs/USER_STORIES.md` lors de l'avancement ou la clôture d'une User Story.
-* Mettre à jour `.env.example` et `README.md` si une variable d'environnement ou une commande change.
+### 2. Challenge systématique avant chaque Pull Request
+* Avant d'ouvrir ou de finaliser une Pull Request, l'IA **doit présenter un court bilan critique** au développeur :
+  1. **Décisions prises** (architecture, patterns, schéma SQL, contrat API) et *pourquoi*.
+  2. **Faiblesses & compromis** de ces choix selon le contexte actuel.
+  3. **Points à surveiller / revisiter** dans les jalons suivants.
+* L'objectif est que chaque choix soit compris, assumé et défendable (revue de code / mentorat).
 
 ### 3. Branches & Pull Requests
-* **Branches de travail :** partir de `develop` et nommer la branche `feature/<id>-nom-fonctionnalite` (ou `fix/<id>-...`, `chore/<id>-...`).
+* **Branches de travail :** partir de `develop` et nommer `feature/<id>-nom`, `fix/<id>-nom`, ou `chore/<id>-nom`.
 * **PR courantes → `develop` :** toute PR de feature, fix ou chore cible **`develop`** (1 PR = 1 User Story ou lot cohérent).
 * **PR de jalon → `main` :** les PR vers **`main`** sont réservées aux livraisons de jalons (**V1**, **V2**, **V3**…) depuis `develop`.
 * Ne jamais committer de fichiers générés (`target/`, `dist/`, `node_modules/`, `.angular/`) ni de fichier `.env`.
 
-### 4. Definition of Done & Validation avant livraison
-Avant de considérer une tâche terminée ou prête pour PR, vérifier systématiquement :
-1. **Back-end :** `./mvnw test` (ou `.\mvnw.cmd test` sous Windows) passe au vert avec **Java 25** (valide démarrage Spring, exécution Flyway, `ddl-auto=validate` sur H2, tests unitaires et d'intégration).
-2. **Front-end :** `npm run build` et `npm test -- --watch=false` passent au vert avec **Node 24 LTS** (ou `>= 22.22.3`).
-3. **Tests :** chaque nouvelle règle métier, endpoint ou composant significatif est couvert par au moins un test pertinent (cas nominal + cas d'erreur / validation).
-4. **CI GitHub Actions (`.github/workflows/ci.yml`) :** les jobs `backend` (`./mvnw test`) et `frontend` (`npm ci && npm run build`) passent au vert sur la Pull Request (vers `develop` pour les features/fixes/chores, vers `main` pour les jalons).
+### 4. Definition of Done & Validation
+Avant tout commit final ou PR, vérifier systématiquement :
+1. **Back-end :** `./mvnw test` (`.\mvnw.cmd test` sous Windows) au vert avec **Java 25**.
+2. **Front-end :** `npm test -- --watch=false` et `npm run build` au vert avec **Node 24 LTS** (ou `>= 22.22.3`).
+3. **Infrastructure :** `docker compose --env-file .env.example config --quiet` valide si `docker-compose.yml` ou `.env.example` a changé.
+4. **Tests :** chaque règle métier, endpoint ou composant significatif est testé (cas nominal + erreur/validation).
+5. **CI GitHub Actions (`.github/workflows/ci.yml`) :** tous les jobs (`backend`, `frontend`, `docker`) au vert sur la PR.
+6. **Doc & JIRA :** `docs/USER_STORIES.md` (et `docs/ARCHITECTURE.md` / `README.md` si décision structurante) mis à jour.
 
 ---
 
 ## 4. Périmètre & Roadmap (Éviter le scope creep)
 
-* **V1 (MVP actuel) :** socle Spring MVC + Flyway/H2/PostgreSQL + Angular 22+ Zoneless, journalisation (`search_logs`), recherche de vols via Amadeus (dates fixes puis flexibles sous contrainte de budget), affichage des résultats triés par prix.
-* **V2 :** historisation et tendances de prix, recherches favorites, alertes de baisse de prix, authentification utilisateur, déploiement PostgreSQL.
-* **V3 :** extension multi-modale (train + hébergement) et optimisation globale transport + séjour.
+* **V1 (MVP) :** socle Spring MVC + Flyway/H2/PostgreSQL 18 (`docker-compose.yml`) + Angular 22+ Zoneless/Signals + CI, journalisation (`search_logs`), recherche de vols Amadeus (dates fixes puis flexibles sous budget), résultats triés par prix & détail itinéraire.
+* **V2 :** historisation et tendances tarifaires, authentification JWT, recherches favorites & alertes, tests E2E **Playwright**, analyse qualité **SonarQube**, déploiement PostgreSQL managé.
+* **V3 / Phase 3–4 :** extension multi-modale (train + hébergement), optimisation budget/durée, passage à l'échelle (**Virtual Threads**, **Kubernetes**, étude NoSQL si justifié par le volume).

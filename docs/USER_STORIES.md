@@ -1,226 +1,272 @@
-# Backlog & Suivi des User Stories — TripMint
+# Suivi Projet (JIRA) — EPICs, User Stories & Commits
 
-Ce document recense l'ensemble des User Stories du projet **TripMint** par jalon (**V1**, **V2**, **V3**) ainsi que leur état d'avancement réel.
+Ce document sert de **tableau de suivi type JIRA** pour **TripMint**. Conformément à [AGENTS.md](../AGENTS.md), **chaque commit** doit mettre à jour le statut des User Stories concernées et enrichir le journal des commits ci-dessous.
 
 > **Rappel du workflow Git :**
-> * Chaque User Story est développée sur une branche dédiée depuis `develop` (`feature/<id>-...`, `chore/<id>-...`) et livrée via une **Pull Request vers `develop`**.
-> * Les **Pull Requests vers `main`** sont réservées aux livraisons de jalons (**V1**, **V2**, **V3**…).
+> * Branches de travail depuis `develop` (`feature/<id>-...`, `fix/<id>-...`, `chore/<id>-...`) → **PR vers `develop`**.
+> * Livraisons de jalons (**V1**, **V2**, **V3**…) → **PR de `develop` vers `main`**.
 
 ---
 
-## Vue d'ensemble de l'avancement
+## 1. Vue d'ensemble par EPIC
 
-| Jalon | Terminées | En cours / À merger | À faire | Progression |
-| :--- | :---: | :---: | :---: | :--- |
-| **V1 — Socle & Recherche de Vols (MVP)** | 0 *(2 prêtes à merger)* | 3 (`US-01`, `US-02`, `US-03`) | 6 (`US-04` → `US-09`) | Socle prêt sur `chore/init-skeleton` |
-| **V2 — Historisation, Tendances & Comptes** | 0 | 0 | 5 (`US-10` → `US-14`) | Planifié |
-| **V3 — Extension Multi-Modale** | 0 | 0 | 3 (`US-15` → `US-17`) | Planifié |
-
-### Tableau synthétique
-
-| ID | Jalon | Titre | Issue GitHub | Statut |
+| EPIC | Jalon | Parcours / Objectif | US | Statut |
 | :--- | :---: | :--- | :---: | :--- |
-| **US-01** | V1 | Configuration du dépôt Git, conventions & CI (`develop` / `main`) | `#1` | 🟡 En cours *(code prêt sur `chore/init-skeleton`, protections GitHub à vérifier)* |
-| **US-02** | V1 | Initialisation du socle Back-end Spring MVC + Flyway (H2 / PostgreSQL) | `#3` *(adaptée)* | 🟡 Prêt à merger sur `develop` *(validation `./mvnw test` OK)* |
-| **US-03** | V1 | Initialisation du socle Front-end Angular 22+ Standalone Zoneless | — | 🟡 Prêt à merger sur `develop` *(validation `npm run build` & tests OK)* |
-| **US-04** | V1 | Conception des contrats API V1 & schémas (`docs/`) | — | ⚪ À faire |
-| **US-05** | V1 | Intégration client Amadeus (OAuth2 + vols dates fixes + Adapter) | — | ⚪ À faire |
-| **US-06** | V1 | API REST de recherche de vols à dates fixes + journalisation (`search_logs`) | — | ⚪ À faire |
-| **US-07** | V1 | Moteur de recherche à dates flexibles sous contrainte de budget | — | ⚪ À faire |
-| **US-08** | V1 | Interface Angular : formulaire de recherche & liste des vols triés par prix | — | ⚪ À faire |
-| **US-09** | V1 | Détail d'itinéraire, gestion des erreurs/états UI & release **V1** (`develop` → `main`) | — | ⚪ À faire |
-| **US-10** | V2 | Relevé périodique & historisation des prix | — | ⚪ À faire |
-| **US-11** | V2 | Analyse de tendances & détection de baisses tarifaires | — | ⚪ À faire |
-| **US-12** | V2 | Authentification utilisateur (JWT & Spring Security) | — | ⚪ À faire |
-| **US-13** | V2 | Recherches favorites & alertes automatiques de baisse de prix | — | ⚪ À faire |
-| **US-14** | V2 | Déploiement continu sur PostgreSQL managé (`prod`) & release **V2** | — | ⚪ À faire |
-| **US-15** | V3 | Abstraction multi-fournisseurs (Strategy) & connecteur ferroviaire (train) | — | ⚪ À faire |
-| **US-16** | V3 | Module hébergement & calcul du budget global transport + logement | — | ⚪ À faire |
-| **US-17** | V3 | Recommandations d'itinéraires optimisés budget / durée & release **V3** | — | ⚪ À faire |
+| **EPIC-01** | **V1** | Socle Monorepo, Conventions, Docker & CI | `US-01` → `US-04` | 🟡 En cours *(prêt à merger sur `develop`)* |
+| **EPIC-02** | **V1** | Moteur de Recherche de Vols (Parcours P1 & P2) | `US-05` → `US-10` | ⚪ À faire |
+| **EPIC-03** | **V2** | Historisation & Tendances Tarifaires (Parcours P3) | `US-11` → `US-12` | ⚪ À faire |
+| **EPIC-04** | **V2** | Comptes, Alertes, Qualité (Playwright / SonarQube) & Prod | `US-13` → `US-17` | ⚪ À faire |
+| **EPIC-05** | **V3** | Extension Multi-Modale : Train & Hébergement (Parcours P4) | `US-18` → `US-20` | ⚪ À faire |
+| **EPIC-06** | **Phase 3–4** | Scalabilité & Ops (Virtual Threads, Kubernetes, étude NoSQL) | `US-21` → `US-22` | ⚪ À faire |
 
 ---
 
-## Alignement avec les Issues GitHub existantes (`#1`, `#2`, `#3`)
+## 2. Tableau de Bord (Issues / User Stories)
 
-Les 3 issues actuellement ouvertes sur GitHub ont été créées avant le recentrage pragmatique V1 (passage à Spring MVC classique sans Spring Modulith et H2 en local/tests). Voici leur statut exact :
+| ID | EPIC | Jalon | Titre | Issue GitHub | Statut | Commits liés |
+| :--- | :---: | :---: | :--- | :---: | :--- | :--- |
+| **US-01** | EPIC-01 | V1 | Configuration du dépôt Git, `AGENTS.md`, doc métier/ADR & CI (`develop`/`main`) | `#1` | 🟡 Prêt à merger *(protections GitHub à vérifier)* | `dc00ded`, `1d79c98`, `2d9339a` |
+| **US-02** | EPIC-01 | V1 | Environnement local PostgreSQL 18 via Docker Compose | `#2` | 🟡 En cours *(`config` OK, `up -d` à valider sur Docker Desktop)* | `329574f` |
+| **US-03** | EPIC-01 | V1 | Socle Back-end Spring MVC (Java 25, Spring Boot 4, Flyway, H2/PostgreSQL, erreurs) | `#3` *(adaptée)* | 🟡 Prêt à merger sur `develop` | `dc00ded` |
+| **US-04** | EPIC-01 | V1 | Socle Front-end Angular 22+ Standalone Zoneless / Signals & proxy `/api` | — | 🟡 Prêt à merger sur `develop` | `dc00ded` |
+| **US-05** | EPIC-02 | V1 | Contrats JSON `/api/v1/*`, diagrammes UML & modèle de données V1 (`docs/`) | — | ⚪ À faire | — |
+| **US-06** | EPIC-02 | V1 | Intégration client Amadeus (OAuth2 + vols dates fixes + Adapter) | — | ⚪ À faire | — |
+| **US-07** | EPIC-02 | V1 | API REST de recherche à dates fixes, transactions & journalisation (`search_logs`) | — | ⚪ À faire | — |
+| **US-08** | EPIC-02 | V1 | Moteur de recherche à dates flexibles sous contrainte de budget | — | ⚪ À faire | — |
+| **US-09** | EPIC-02 | V1 | Interface Angular : formulaire (Reactive Forms + Signals) & résultats triés par prix | — | ⚪ À faire | — |
+| **US-10** | EPIC-02 | V1 | Détail d'itinéraire, gestion des états/erreurs UI & release **V1** (`develop` → `main`) | — | ⚪ À faire | — |
+| **US-11** | EPIC-03 | V2 | Relevé périodique & historisation des prix (`price_snapshots`) | — | ⚪ À faire | — |
+| **US-12** | EPIC-03 | V2 | Analyse de tendances (Window Functions PostgreSQL) & détection de baisses | — | ⚪ À faire | — |
+| **US-13** | EPIC-04 | V2 | Authentification utilisateur (JWT & Spring Security) | — | ⚪ À faire | — |
+| **US-14** | EPIC-04 | V2 | Recherches favorites & alertes automatiques de baisse de prix | — | ⚪ À faire | — |
+| **US-15** | EPIC-04 | V2 | Tests E2E **Playwright** sur les parcours critiques (P1 & P2) | — | ⚪ À faire | — |
+| **US-16** | EPIC-04 | V2 | Analyse qualité continue **SonarQube / SonarCloud** dans la CI | — | ⚪ À faire | — |
+| **US-17** | EPIC-04 | V2 | Déploiement continu sur PostgreSQL managé (`prod`) & release **V2** | — | ⚪ À faire | — |
+| **US-18** | EPIC-05 | V3 | Abstraction multi-fournisseurs (Strategy) & connecteur ferroviaire (train) | — | ⚪ À faire | — |
+| **US-19** | EPIC-05 | V3 | Module hébergement (`StayProvider`) & calcul du budget global transport + logement | — | ⚪ À faire | — |
+| **US-20** | EPIC-05 | V3 | Recommandations d'itinéraires optimisés budget / durée & release **V3** | — | ⚪ À faire | — |
+| **US-21** | EPIC-06 | Ph. 3–4 | Parallélisation multi-fournisseurs (Virtual Threads bornés) & benchmark | — | ⚪ À faire | — |
+| **US-22** | EPIC-06 | Ph. 3–4 | Conteneurisation complète & déploiement **Kubernetes** (+ réévaluation NoSQL) | — | ⚪ À faire | — |
+
+---
+
+## 3. Journal des Commits (Rempli par l'IA à chaque commit)
+
+| Date | Commit | Branche | US / EPIC | Résumé |
+| :--- | :--- | :--- | :---: | :--- |
+| 2026-11-19 | `dc00ded` | `chore/init-skeleton` | US-01, US-03, US-04 / EPIC-01 | Initialisation du squelette monorepo V1 (Spring MVC Java 25, Flyway/H2/PostgreSQL, Angular 22.3 Zoneless, `AGENTS.md`, CI) |
+| 2026-11-25 | `1d79c98` | `chore/init-skeleton` | US-01 / EPIC-01 | Alignement workflow PR (`develop` pour features, `main` pour jalons), déclenchement CI sur `develop`/`main` et création du backlog |
+| 2026-11-26 | `329574f` | `chore/init-skeleton` | US-02 / EPIC-01 | Ajout de `docker-compose.yml` (`postgres:18-alpine`, volume `/var/lib/postgresql`, healthcheck `pg_isready`) et variables `DB_NAME`/`DB_PORT` |
+| 2026-11-26 | `2d9339a` | `chore/init-skeleton` | US-01 / EPIC-01 | Enrichissement de la CI (tests Vitest, validation Docker Compose, `push` sur `develop`/`main`, `concurrency`) |
+| 2026-11-26 | *(commit courant)* | `chore/init-skeleton` | US-01 / EPIC-01 | Recentrage métier du `README.md` (personas, parcours, EPICs → archi), ajout `docs/ARCHITECTURE.md` (ADR, faiblesses, Signals, NoSQL, transactions), suivi JIRA et règles IA dans `AGENTS.md` |
+
+---
+
+## 4. Alignement avec les Issues GitHub existantes (`#1`, `#2`, `#3`)
 
 | Issue GitHub | Titre actuel | Statut / Action recommandée |
 | :--- | :--- | :--- |
-| **#1** | *Mise en place du dépot Git* | **En cours** — `.gitignore`, `.env.example`, `.github/ISSUE_TEMPLATE/user_story.md`, `AGENTS.md` et `.github/workflows/ci.yml` sont prêts sur `chore/init-skeleton`. Vérifier la protection des branches `main` et `develop` dans les paramètres GitHub, puis fermer à la fusion de la PR vers `develop`. |
-| **#2** | *Mise en place de l'environnement local PostgreSQL via Docker Compose* | **Obsolète pour la V1** — Remplacée par H2 en mémoire (`MODE=PostgreSQL`) + Flyway pour le local/tests, et PostgreSQL en profil `prod`. Peut être fermée comme *not planned* (ou reportée en option V2 pré-prod). |
-| **#3** | *Initialisation du squelette Back-end Spring Boot 4 & Spring Modulith* | **Remplacée par US-02** — L'architecture retenue est **Spring MVC classique** (sans Spring Modulith). Mettre à jour le titre/description de `#3` (ou la fermer au profit de la PR `chore/init-skeleton` → `develop`). |
+| **#1** | *Mise en place du dépot Git* | **Alignée sur US-01** — Tous les fichiers dépôt/doc/CI sont prêts sur `chore/init-skeleton`. Activer les protections de branches sur `develop` et `main` dans GitHub puis fermer au merge vers `develop`. |
+| **#2** | *Mise en place de l'environnement local PostgreSQL via Docker Compose* | **Alignée sur US-02** — `docker-compose.yml` validé syntaxiquement. Lancer `docker compose up -d` une fois Docker Desktop démarré pour valider le statut `healthy`, puis fermer au merge vers `develop`. |
+| **#3** | *Initialisation du squelette Back-end Spring Boot 4 & Spring Modulith* | **Adaptée en US-03 (Spring MVC classique)** — Recentrage V1 sans Spring Modulith, sans Virtual Threads et sans Auth. Mettre à jour le titre/description de `#3` puis fermer au merge vers `develop`. |
 
 ---
 
-## Jalon V1 — Socle & Recherche de Vols (MVP)
+## 5. Détail des User Stories
 
-### US-01 — Configuration du dépôt Git, conventions & CI (`develop` / `main`)
-* **Statut :** 🟡 En cours *(branche `chore/init-skeleton`, à merger dans `develop`)*
-* **Issue GitHub :** `#1`
-* **Besoin utilisateur :** En tant que développeur, je veux disposer d'un dépôt propre avec conventions d'ingénierie, template de User Story et pipeline CI, afin d'assurer la qualité et la traçabilité dès le premier commit.
+### EPIC-01 — Socle Monorepo, Conventions, Docker & CI (V1)
+
+#### US-01 — Configuration du dépôt Git, conventions, documentation & CI
+* **Statut :** 🟡 Prêt à merger sur `develop` *(Issue `#1`)*
+* **Besoin :** En tant que développeur, je veux un dépôt structuré autour du besoin métier, des conventions IA (`AGENTS.md`), des ADR et d'une CI automatisée sur `develop`/`main`, afin de garantir qualité et traçabilité dès le départ.
 * **Critères d'acceptation :**
   - [x] `.gitignore` complet (Java/Maven, Node/Angular, `.env`, IDE/OS)
-  - [x] `.env.example` documentant `AMADEUS_CLIENT_ID`, `AMADEUS_CLIENT_SECRET`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
-  - [x] Template `.github/ISSUE_TEMPLATE/user_story.md` et guide `AGENTS.md` (KISS, DRY, SOLID, workflow)
-  - [x] Workflow `.github/workflows/ci.yml` déclenché sur PR vers `develop` et `main`
-  - [ ] Règles de protection configurées sur GitHub pour `main` et `develop` (PR obligatoire + CI verte)
+  - [x] `.env.example` documentant toutes les variables requises
+  - [x] `README.md` structuré *Besoin métier → Personas → Parcours → EPICs → Architecture*
+  - [x] `docs/ARCHITECTURE.md` (ADR, faiblesses/compromis, transactions, Signals vs historique, challenge MongoDB/Spark)
+  - [x] `AGENTS.md` (KISS/DRY/SOLID, erreurs/transactions, mise à jour JIRA par commit, revue critique avant PR)
+  - [x] `.github/workflows/ci.yml` (tests back + tests/build front + validation Docker Compose sur `develop` et `main`)
+  - [ ] Protections de branches activées sur GitHub (`develop` et `main`)
   - [ ] PR `chore/init-skeleton` → `develop` mergée avec CI verte
 
----
+#### US-02 — Environnement local PostgreSQL 18 via Docker Compose
+* **Statut :** 🟡 En cours *(Issue `#2`)*
+* **Besoin :** En tant que développeur back-end, je veux démarrer une instance PostgreSQL 18 isolée via Docker Compose, afin de tester mon application sur la vraie base cible sans installation système.
+* **Critères d'acceptation :**
+  - [x] `docker-compose.yml` créé avec `postgres:18-alpine`
+  - [x] Identifiants, nom de base et port (`DB_PORT`, défaut `5432`) configurés via `.env` / `.env.example`
+  - [x] Volume persistant `tripmint_postgres_data:/var/lib/postgresql` (conforme PostgreSQL 18)
+  - [x] Healthcheck `pg_isready` configuré et validé par `docker compose config`
+  - [ ] Démarrage `docker compose up -d` et statut `healthy` validés sur Docker Desktop
+  - [ ] Mergé dans `develop`
 
-### US-02 — Initialisation du socle Back-end Spring MVC + Flyway
-* **Statut :** 🟡 Prêt à merger sur `develop` *(branche `chore/init-skeleton`)*
-* **Issue GitHub :** `#3` *(adaptée en Spring MVC classique)*
-* **Besoin utilisateur :** En tant que développeur back-end, je veux un squelette Spring Boot 4 / Java 25 en architecture Spring MVC avec Flyway et H2/PostgreSQL, afin de bâtir les fonctionnalités V1 sur des fondations validées.
+#### US-03 — Socle Back-end Spring MVC + Flyway (H2 / PostgreSQL)
+* **Statut :** 🟡 Prêt à merger sur `develop` *(Issue `#3` adaptée)*
+* **Besoin :** En tant que développeur back-end, je veux un socle Spring Boot 4 / Java 25 en Spring MVC classique avec Flyway, H2 local et gestion d'erreurs centralisée, afin de développer la V1 rapidement et proprement.
 * **Critères d'acceptation :**
   - [x] Projet Maven Java 25 + Spring Boot 4.1.2 (`webmvc`, `data-jpa`, `validation`, `flyway`, `h2`, `postgresql`, `test`)
-  - [x] Packages `com.tripmint` (`config`, `controller`, `service`, `client`, `repository`, `model`)
-  - [x] Endpoint `GET /api/v1/health` et `@RestControllerAdvice` global (`GlobalExceptionHandler`)
-  - [x] Profils `local` (H2 `MODE=PostgreSQL`, console `/h2-console`, `ddl-auto=validate`) et `prod` (PostgreSQL env vars, `ddl-auto=validate`)
-  - [x] Migration `V1__init.sql` (`search_logs`) compatible H2 et PostgreSQL + entité `SearchLog`
-  - [x] `./mvnw test` passant au vert (3/3 tests d'intégration)
+  - [x] Arborescence `com.tripmint` (`config`, `controller`, `service`, `client`, `repository`, `model`)
+  - [x] `GET /api/v1/health` et `@RestControllerAdvice` global (`GlobalExceptionHandler` → `ApiError`)
+  - [x] Profils `local` (H2 `MODE=PostgreSQL`, `/h2-console`, `ddl-auto=validate`) et `prod` (PostgreSQL env vars, `ddl-auto=validate`)
+  - [x] Migration `V1__init.sql` (`search_logs`) + entité `SearchLog`
+  - [x] `./mvnw test` au vert (3/3 tests d'intégration)
   - [ ] Mergé dans `develop`
 
----
-
-### US-03 — Initialisation du socle Front-end Angular 22+
-* **Statut :** 🟡 Prêt à merger sur `develop` *(branche `chore/init-skeleton`)*
-* **Besoin utilisateur :** En tant que développeur front-end, je veux une application Angular 22+ Standalone Zoneless avec proxy vers l'API locale, afin de développer rapidement les écrans V1.
+#### US-04 — Socle Front-end Angular 22+ Standalone Zoneless
+* **Statut :** 🟡 Prêt à merger sur `develop`
+* **Besoin :** En tant que développeur front-end, je veux une SPA Angular 22+ Standalone Zoneless / Signals avec proxy `/api`, afin de bâtir l'interface V1 sur une base moderne et stricte.
 * **Critères d'acceptation :**
-  - [x] Application Angular 22.3 Standalone Components, détection Zoneless (sans `zone.js`), SCSS, TypeScript strict (`strict: true`, `strictTemplates: true`)
-  - [x] `proxy.conf.json` redirigeant `/api` vers `http://localhost:8080` configuré dans `angular.json`
+  - [x] Angular 22.3 Standalone, Zoneless (sans `zone.js`), SCSS, TypeScript strict (`strict: true`, `strictTemplates: true`)
+  - [x] `proxy.conf.json` (`/api` → `http://localhost:8080`) branché dans `angular.json`
   - [x] Composant d'accueil minimal TripMint + tests Vitest passants
-  - [x] `npm run build` et `npm test -- --watch=false` passants au vert
+  - [x] `npm test -- --watch=false` et `npm run build` au vert
   - [ ] Mergé dans `develop`
 
 ---
 
-### US-04 — Conception des contrats API V1 & schémas (`docs/`)
+### EPIC-02 — Moteur de Recherche de Vols (V1 — Parcours P1 & P2)
+
+#### US-05 — Contrats API V1, diagrammes UML & modèle de données (`docs/`)
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que développeur Full Stack, je veux formaliser les contrats JSON de recherche de vols et le modèle de données V1 avant de coder le métier, afin d'aligner le back-end et le front-end.
+* **Besoin :** En tant que développeur Full Stack, je veux formaliser les contrats JSON et schémas avant de coder la recherche, afin d'aligner back-end, front-end et gestion d'erreurs.
 * **Critères d'acceptation :**
-  - [ ] Contrat JSON des endpoints de recherche (`/api/v1/flights/search`, requêtes, réponses, erreurs `ApiError`) documenté dans `docs/`
-  - [ ] Schéma UML de séquence (Angular → Controller → Service → Amadeus Adapter → Repository) ajouté dans `docs/`
-  - [ ] Modèle de données V1 (évolution éventuelle de `search_logs`) validé
+  - [ ] Contrat JSON `/api/v1/flights/search` (requête, réponse, codes HTTP & `ApiError`) documenté dans `docs/`
+  - [ ] Diagramme de séquence UML (Angular → Controller → Service → Amadeus Adapter → Repository) dans `docs/`
+  - [ ] Schéma de données V1 validé (évolution éventuelle de `search_logs`)
 
----
-
-### US-05 — Intégration du client Amadeus (OAuth2 + vols dates fixes)
+#### US-06 — Intégration client Amadeus (OAuth2 + vols dates fixes + Adapter)
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que système TripMint, je veux interroger l'API Sandbox Amadeus de manière isolée et sécurisée, afin de récupérer des offres de vols réelles sans coupler le domaine métier au format externe.
+* **Besoin :** En tant que système TripMint, je veux interroger l'API Sandbox Amadeus de façon isolée via un pattern Adapter, afin de ne jamais exposer les DTOs externes dans le domaine métier.
 * **Critères d'acceptation :**
-  - [ ] Configuration Amadeus externalisée via `AMADEUS_CLIENT_ID` et `AMADEUS_CLIENT_SECRET`
-  - [ ] Authentification OAuth2 *Client Credentials* avec mise en cache du token jusqu'à expiration
-  - [ ] Client HTTP dédié dans `com.tripmint.client.amadeus` utilisant `RestClient` Spring
-  - [ ] Pattern **Adapter** traduisant les DTOs bruts Amadeus en modèles métier TripMint (`FlightOffer`)
-  - [ ] Gestion propre des timeouts / erreurs HTTP Amadeus (traduite via `GlobalExceptionHandler`)
-  - [ ] Tests unitaires / MockRestServiceServer couvrant succès, renouvellement de token et erreurs fournisseur
+  - [ ] Identifiants externalisés (`AMADEUS_CLIENT_ID`, `AMADEUS_CLIENT_SECRET`)
+  - [ ] Authentification OAuth2 *Client Credentials* avec cache du token jusqu'à expiration
+  - [ ] Client `RestClient` dans `com.tripmint.client.amadeus` + Adapter vers `FlightOffer`
+  - [ ] Gestion des timeouts et erreurs fournisseur (traduction en `ApiError` via `GlobalExceptionHandler`)
+  - [ ] Tests unitaires / `MockRestServiceServer` (nominal, renouvellement token, erreurs HTTP)
 
----
-
-### US-06 — API REST de recherche de vols à dates fixes & journalisation
+#### US-07 — API REST de recherche à dates fixes, transactions & journalisation
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux rechercher des vols sur des dates précises (aller simple ou aller-retour) dans la limite d'un budget optionnel, afin de comparer les meilleures offres triées par prix.
+* **Besoin :** En tant que voyageur (Parcours P1), je veux rechercher des vols sur des dates précises dans un budget optionnel, afin de comparer les meilleures offres triées par prix.
 * **Critères d'acceptation :**
-  - [ ] Endpoint REST `/api/v1/flights/search` validant les paramètres (`@Valid` : codes IATA, dates cohérentes, budget > 0, passagers >= 1)
-  - [ ] Filtrage sur le budget maximum (si renseigné) et tri croissant par prix
-  - [ ] Journalisation de chaque recherche dans `search_logs` (avec migration Flyway `V2__...sql` si colonnes supplémentaires)
-  - [ ] Tests unitaires (service) et tests d'intégration MockMvc (cas nominaux + erreurs 400 de validation)
+  - [ ] Endpoint `/api/v1/flights/search` validé via `@Valid` (codes IATA, dates cohérentes, budget > 0, passagers >= 1)
+  - [ ] Filtrage `<= maxBudget` et tri croissant par prix
+  - [ ] Journalisation en base dans `search_logs` **en dehors** de l'appel HTTP Amadeus (frontière `@Transactional` courte)
+  - [ ] Tests unitaires (service) et d'intégration MockMvc (cas nominaux + erreurs 400/502)
 
----
-
-### US-07 — Moteur de recherche à dates flexibles sous contrainte de budget
+#### US-08 — Moteur de recherche à dates flexibles sous contrainte de budget
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur flexible, je veux saisir une ville de départ, un budget plafond, une durée de séjour et une fenêtre de dates, afin de découvrir automatiquement les combinaisons de dates les moins chères.
+* **Besoin :** En tant que voyageur flexible (Parcours P2), je veux indiquer une ville de départ, un budget maximum, une durée de séjour et une plage de dates, afin de trouver les créneaux les moins chers.
 * **Critères d'acceptation :**
-  - [ ] Génération bornée des couples de dates `(départ, retour)` dans la fenêtre demandée pour une durée donnée
-  - [ ] Exécution maîtrisée des requêtes fournisseur (gestion du rate-limit sandbox Amadeus et déduplication)
-  - [ ] Filtrage strict des offres `<= maxBudget` et classement par meilleur prix
-  - [ ] Tests unitaires dédiés sur le calcul des fenêtres de dates et le filtrage budgétaire
+  - [ ] Génération bornée des couples `(départ, retour)` dans la fenêtre pour la durée souhaitée
+  - [ ] Exécution maîtrisée respectant le rate-limit sandbox Amadeus + déduplication
+  - [ ] Filtrage strict `<= maxBudget` et classement par prix croissant
+  - [ ] Tests unitaires dédiés sur le calcul des créneaux et le filtrage budgétaire
 
----
-
-### US-08 — Interface Angular : recherche de vols & résultats triés par prix
+#### US-09 — Interface Angular : formulaire de recherche & résultats triés par prix
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux un formulaire clair (mode dates fixes / dates flexibles) et une liste lisible d'offres triées par prix, afin de trouver rapidement un vol adapté à mon budget.
+* **Besoin :** En tant que voyageur (Parcours P1 & P2), je veux un formulaire intuitif (dates fixes / flexibles) et une liste claire des vols triés par prix, afin d'identifier rapidement la meilleure offre.
 * **Critères d'acceptation :**
-  - [ ] Service Angular `FlightSearchService` appelant `/api/v1/flights/search` via `HttpClient`
-  - [ ] Formulaire **Reactive Forms** typé avec bascule Dates fixes / Dates flexibles et validation côté client
-  - [ ] Gestion d'état réactive via **Angular Signals** (mode Zoneless)
-  - [ ] Affichage des cartes de vols (compagnie, horaires, durée, escales, prix) triées par prix croissant
-  - [ ] Tests unitaires Vitest sur le service et le composant de recherche
+  - [ ] Service Angular `FlightSearchService` consommant `/api/v1/flights/search`
+  - [ ] Formulaire **Reactive Forms** typé avec bascule Dates fixes / Flexibles et validations
+  - [ ] État réactif piloté par **Angular Signals** (mode Zoneless)
+  - [ ] Liste d'offres (compagnie, horaires, durée, escales, prix) triées par prix croissant
+  - [ ] Tests unitaires Vitest sur le service et le composant
 
----
-
-### US-09 — Détail d'itinéraire, états UI & livraison du jalon V1
+#### US-10 — Détail d'itinéraire, états UI & release V1 (`develop` → `main`)
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux consulter le détail d'un itinéraire et recevoir des retours clairs en cas de chargement, absence de résultat ou erreur API, afin de disposer d'une V1 fiable de bout en bout.
+* **Besoin :** En tant que voyageur, je veux consulter le détail d'une offre et comprendre clairement les états de chargement, d'absence de résultat ou d'erreur API, afin de disposer d'une V1 fiable.
 * **Critères d'acceptation :**
-  - [ ] Vue détaillée d'une offre sélectionnée (segments aller/retour, escales, récapitulatif tarifaire)
-  - [ ] États UI soignés : chargement (*skeleton/spinner*), liste vide, affichage des messages `ApiError`
-  - [ ] Tests back-end et front-end complets au vert
+  - [ ] Fiche détaillée d'itinéraire (segments aller/retour, escales, récapitulatif prix)
+  - [ ] Gestion soignée des états UI : chargement, liste vide, affichage des messages `ApiError`
   - [ ] **Pull Request de jalon `develop` → `main`** validée par la CI et tag `v1.0.0`
 
 ---
 
-## Jalon V2 — Historisation, Tendances & Comptes Utilisateurs
+### EPIC-03 — Historisation & Tendances Tarifaires (V2 — Parcours P3)
 
-### US-10 — Relevé périodique & historisation des prix
+#### US-11 — Relevé périodique & historisation des prix
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que système TripMint, je veux enregistrer périodiquement les prix des trajets suivis, afin de constituer un historique fiable.
+* **Besoin :** En tant que système TripMint, je veux enregistrer périodiquement les prix des trajets suivis, afin de constituer un historique fiable.
 * **Critères d'acceptation :**
-  - [ ] Migration Flyway pour la table d'historique des prix (`price_snapshots`)
-  - [ ] Tâche planifiée (`@Scheduled`) enregistrant les relevés sans bloquer l'API
+  - [ ] Migration Flyway (`price_snapshots`) et tâche planifiée (`@Scheduled`) avec transactions courtes
 
-### US-11 — Analyse de tendances & détection de baisses tarifaires
+#### US-12 — Analyse de tendances & détection de baisses tarifaires
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux voir si le prix actuel d'un trajet est inférieur à sa moyenne historique, afin de savoir si c'est le bon moment pour réserver.
+* **Besoin :** En tant que voyageur, je veux savoir si le prix actuel est inférieur à la moyenne historique du trajet, afin d'acheter au meilleur moment.
 * **Critères d'acceptation :**
-  - [ ] Calcul de la moyenne et de l'écart tarifaire par trajet
-  - [ ] Indicateur visuel de tendance / baisse sur l'interface Angular
-
-### US-12 — Authentification utilisateur (JWT & Spring Security)
-* **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux créer un compte et me connecter de façon sécurisée, afin de retrouver mes recherches et préférences.
-* **Critères d'acceptation :**
-  - [ ] Endpoints d'inscription et de connexion sécurisés (mots de passe hachés, JWT)
-  - [ ] Intercepteur HTTP Angular et garde de route pour les pages protégées
-
-### US-13 — Recherches favorites & alertes automatiques de baisse de prix
-* **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant qu'utilisateur connecté, je veux sauvegarder des recherches cibles et être alerté dès qu'un prix passe sous mon budget, afin de ne rater aucune bonne affaire.
-* **Critères d'acceptation :**
-  - [ ] CRUD des recherches suivies / alertes (back-end + front-end)
-  - [ ] Déclenchement d'une alerte lorsqu'un relevé passe sous le seuil configuré
-
-### US-14 — Déploiement continu sur PostgreSQL managé (`prod`) & release V2
-* **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que mainteneur, je veux déployer TripMint sur une instance PostgreSQL réelle avec le profil `prod`, afin de rendre l'application accessible en production.
-* **Critères d'acceptation :**
-  - [ ] Validation complète des migrations Flyway sur PostgreSQL réel (profil `prod`)
-  - [ ] **Pull Request de jalon `develop` → `main`** validée et tag `v2.0.0`
+  - [ ] Requêtes analytiques PostgreSQL (*Window Functions*), tests d'intégration sur PostgreSQL réel (Testcontainers)
+  - [ ] Badge de tendance / baisse affiché sur l'interface Angular
 
 ---
 
-## Jalon V3 — Extension Multi-Modale (Train & Hébergement)
+### EPIC-04 — Comptes, Alertes, Qualité (Playwright / SonarQube) & Prod (V2)
 
-### US-15 — Abstraction multi-fournisseurs (Strategy) & connecteur ferroviaire
+#### US-13 — Authentification utilisateur (JWT & Spring Security)
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux comparer des trajets en train en plus de l'avion dans une même recherche, afin de choisir l'option la plus avantageuse.
+* **Besoin :** En tant que voyageur, je veux créer un compte et me connecter de façon sécurisée, afin de retrouver mes recherches et alertes.
 * **Critères d'acceptation :**
-  - [ ] Interface `TransportProvider` (pattern Strategy) réunissant avion et train
-  - [ ] Intégration d'un fournisseur ferroviaire et affichage unifié côté Angular
+  - [ ] Inscription / connexion sécurisées (hachage mot de passe + JWT), intercepteur et route guard Angular
 
-### US-16 — Module hébergement & budget global transport + logement
+#### US-14 — Recherches favorites & alertes automatiques de baisse de prix
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux inclure l'hébergement dans mon plafond budgétaire, afin d'estimer le coût réel complet de mon séjour.
+* **Besoin :** En tant qu'utilisateur connecté, je veux sauvegarder des recherches cibles et être alerté dès qu'un tarif passe sous mon plafond.
 * **Critères d'acceptation :**
-  - [ ] Connecteur d'hébergement (`StayProvider`) et agrégation du coût total `transport + hébergement`
-  - [ ] Filtrage sur le budget global côté API et affichage détaillé côté front-end
+  - [ ] CRUD des favoris/alertes (API + UI) et déclenchement d'alerte sous seuil
 
-### US-17 — Recommandations d'itinéraires optimisés budget / durée & release V3
+#### US-15 — Tests E2E Playwright sur les parcours critiques
 * **Statut :** ⚪ À faire
-* **Besoin utilisateur :** En tant que voyageur, je veux obtenir un classement intelligent combinant prix et temps de trajet, afin de sélectionner rapidement le meilleur compromis.
+* **Besoin :** En tant qu'équipe, je veux automatiser les parcours P1 & P2 dans un vrai navigateur avec **Playwright**, afin de prévenir toute régression front/back.
 * **Critères d'acceptation :**
-  - [ ] Algorithme de scoring configurable (prix / durée / escales) testé unitairement
-  - [ ] **Pull Request de jalon `develop` → `main`** validée et tag `v3.0.0`
+  - [ ] Suite Playwright configurée couvrant recherche nominale, détail itinéraire et affichage d'erreur API
+  - [ ] Intégration dans la CI GitHub Actions (avec fournisseur Amadeus mocké)
+
+#### US-16 — Analyse qualité continue SonarQube / SonarCloud
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant qu'équipe, je veux mesurer la dette technique, les bugs potentiels et la couverture de tests via **SonarQube**, afin de maintenir un haut niveau de qualité.
+* **Critères d'acceptation :**
+  - [ ] Export de couverture JaCoCo (back) + Vitest (front) et Quality Gate SonarQube/SonarCloud branché dans la CI
+
+#### US-17 — Déploiement continu sur PostgreSQL managé (`prod`) & release V2
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant que mainteneur, je veux déployer TripMint sur un PostgreSQL managé via CD GitHub Actions, afin de rendre la V2 accessible en ligne.
+* **Critères d'acceptation :**
+  - [ ] Pipeline `.github/workflows/cd.yml` configuré, migrations Flyway validées sur PostgreSQL `prod`, PR `develop` → `main` et tag `v2.0.0`
+
+---
+
+### EPIC-05 — Extension Multi-Modale : Train & Hébergement (V3 — Parcours P4)
+
+#### US-18 — Abstraction multi-fournisseurs (Strategy) & connecteur ferroviaire
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant que voyageur, je veux comparer train et avion sur une même recherche, afin de choisir l'option la plus pertinente.
+* **Critères d'acceptation :**
+  - [ ] Interface `TransportProvider` (Strategy), connecteur train + affichage unifié Angular
+
+#### US-19 — Module hébergement & budget global transport + logement
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant que voyageur, je veux inclure l'hébergement dans mon budget plafond, afin d'estimer le coût réel complet du séjour.
+* **Critères d'acceptation :**
+  - [ ] Connecteur `StayProvider`, agrégation `transport + hébergement` et filtrage sur budget global
+
+#### US-20 — Recommandations optimisées budget / durée & release V3
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant que voyageur, je veux un classement combinant prix, durée et escales, afin d'identifier rapidement le meilleur compromis.
+* **Critères d'acceptation :**
+  - [ ] Moteur de scoring configurable testé unitairement, PR `develop` → `main` et tag `v3.0.0`
+
+---
+
+### EPIC-06 — Scalabilité & Ops (Phase 3–4)
+
+#### US-21 — Parallélisation multi-fournisseurs (Virtual Threads) & benchmark
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant que système agrégeant plusieurs fournisseurs (avion, train, hébergement), je veux paralléliser les appels I/O avec des Virtual Threads bornés, afin de réduire la latence perçue sans saturer les quotas ni le pool JDBC.
+* **Critères d'acceptation :**
+  - [ ] Activation mesurée des Virtual Threads avec bornage (`Semaphore`/timeout) et benchmark avant/après
+
+#### US-22 — Conteneurisation complète & déploiement Kubernetes (+ étude NoSQL)
+* **Statut :** ⚪ À faire
+* **Besoin :** En tant que mainteneur, je veux packager back-end et front-end en conteneurs déployables sur **Kubernetes** (et réévaluer un cache/stockage NoSQL si le volume d'offres brutes le justifie), afin d'assurer la montée en charge en Phase 3–4.
+* **Critères d'acceptation :**
+  - [ ] `Dockerfile` multi-stage (back + front), manifests Kubernetes / Helm (probes `/api/v1/health`, secrets, ConfigMaps)
+  - [ ] Décision documentée dans `docs/ARCHITECTURE.md` sur l'ajout éventuel d'un store NoSQL (MongoDB) ou d'un pipeline analytique selon les métriques réelles
