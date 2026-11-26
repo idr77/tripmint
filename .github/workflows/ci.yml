@@ -72,5 +72,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate docker-compose.yml
-        run: docker compose --env-file .env.example config --quiet
+      - name: Validate backend/docker-compose.yml
+        run: docker compose -f backend/docker-compose.yml --env-file .env.example config --quiet

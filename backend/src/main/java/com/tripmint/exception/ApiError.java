@@ -1,4 +1,4 @@
-package com.tripmint.model;
+package com.tripmint.exception;
 
 import java.time.Instant;
 import java.util.Map;

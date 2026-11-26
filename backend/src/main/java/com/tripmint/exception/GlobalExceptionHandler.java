@@ -1,6 +1,5 @@
-package com.tripmint.controller;
+package com.tripmint.exception;
 
-import com.tripmint.model.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
