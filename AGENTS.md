@@ -66,7 +66,7 @@ Utiliser un design pattern **uniquement lorsqu'il résout un problème concret**
 ## 3. Processus de Développement & Workflow
 
 ### 1. User Stories
-Toute fonctionnalité ou tâche structurante démarre par une **User Story** (modèle `.github/ISSUE_TEMPLATE/user_story.md`) précisant :
+Toute fonctionnalité ou tâche structurante démarre par une **User Story** (modèle `.github/ISSUE_TEMPLATE/user_story.md`) et est suivie dans `docs/USER_STORIES.md` en précisant :
 * **Besoin utilisateur :** *En tant que … / Je veux … / Afin de …*
 * **Critères d'acceptation** vérifiables et testables.
 * **Notes techniques** (impacts API, migrations Flyway, composants Angular, contrats dans `docs/`).
@@ -74,11 +74,13 @@ Toute fonctionnalité ou tâche structurante démarre par une **User Story** (mo
 ### 2. Conception & Documentation (`docs/`)
 Avant ou pendant l'implémentation d'un nouvel endpoint ou d'une évolution de schéma :
 * Documenter les contrats JSON et schémas (UML / MCD) dans `docs/`.
+* Mettre à jour `docs/USER_STORIES.md` lors de l'avancement ou la clôture d'une User Story.
 * Mettre à jour `.env.example` et `README.md` si une variable d'environnement ou une commande change.
 
 ### 3. Branches & Pull Requests
-* Développer chaque User Story sur une branche dédiée : `feature/<id>-nom-fonctionnalite` (ou `fix/<id>-...`, `chore/<id>-...`).
-* Ouvrir une **Pull Request vers `main`** à périmètre maîtrisé (1 PR = 1 User Story ou lot cohérent).
+* **Branches de travail :** partir de `develop` et nommer la branche `feature/<id>-nom-fonctionnalite` (ou `fix/<id>-...`, `chore/<id>-...`).
+* **PR courantes → `develop` :** toute PR de feature, fix ou chore cible **`develop`** (1 PR = 1 User Story ou lot cohérent).
+* **PR de jalon → `main` :** les PR vers **`main`** sont réservées aux livraisons de jalons (**V1**, **V2**, **V3**…) depuis `develop`.
 * Ne jamais committer de fichiers générés (`target/`, `dist/`, `node_modules/`, `.angular/`) ni de fichier `.env`.
 
 ### 4. Definition of Done & Validation avant livraison
@@ -86,7 +88,7 @@ Avant de considérer une tâche terminée ou prête pour PR, vérifier systémat
 1. **Back-end :** `./mvnw test` (ou `.\mvnw.cmd test` sous Windows) passe au vert avec **Java 25** (valide démarrage Spring, exécution Flyway, `ddl-auto=validate` sur H2, tests unitaires et d'intégration).
 2. **Front-end :** `npm run build` et `npm test -- --watch=false` passent au vert avec **Node 24 LTS** (ou `>= 22.22.3`).
 3. **Tests :** chaque nouvelle règle métier, endpoint ou composant significatif est couvert par au moins un test pertinent (cas nominal + cas d'erreur / validation).
-4. **CI GitHub Actions (`.github/workflows/ci.yml`) :** les jobs `backend` (`./mvnw test`) et `frontend` (`npm ci && npm run build`) passent au vert sur la Pull Request vers `main`.
+4. **CI GitHub Actions (`.github/workflows/ci.yml`) :** les jobs `backend` (`./mvnw test`) et `frontend` (`npm ci && npm run build`) passent au vert sur la Pull Request (vers `develop` pour les features/fixes/chores, vers `main` pour les jalons).
 
 ---
 

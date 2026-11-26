@@ -21,7 +21,7 @@
 | **Back-end** | **Java 25 (LTS)**, **Spring Boot 4.x** (Spring MVC) | Architecture en couches classique (`controller`, `service`, `client`, `repository`, `model`, `config`), DTOs en Java `record`, validation Bean Validation et `@RestControllerAdvice` global. |
 | **Base de données & Migrations** | **Flyway** dès la V1, **H2** (local/tests), **PostgreSQL** (déploiement) | Migrations SQL standard compatibles H2 (`MODE=PostgreSQL`) et PostgreSQL, validation stricte du schéma par Hibernate (`ddl-auto=validate`). |
 | **Front-end** | **Angular 22+**, **TypeScript strict**, **SCSS** | **Standalone Components**, détection de changement **Zoneless**, proxy local `/api` → `http://localhost:8080`. |
-| **Qualité & CI** | **JUnit 5**, **Spring Boot Test**, **GitHub Actions** | Pipeline CI automatique sur chaque Pull Request vers `main` : `./mvnw test` (démarrage Spring + Flyway sur H2) et `npm ci && npm run build`. |
+| **Qualité & CI** | **JUnit 5**, **Spring Boot Test**, **GitHub Actions** | Pipeline CI automatique sur chaque Pull Request vers `develop` et `main` : `./mvnw test` (démarrage Spring + Flyway sur H2) et `npm ci && npm run build`. |
 
 ---
 
@@ -49,7 +49,10 @@ tripmint/
 │       └── db/migration/         # Scripts SQL Flyway (V1__init.sql, ...)
 ├── frontend/                     # SPA Angular 22+ (Standalone, Zoneless, SCSS, strict)
 │   └── proxy.conf.json           # Redirection /api -> http://localhost:8080
-├── docs/                         # Diagrammes UML, schémas MCD et contrats JSON
+├── docs/
+│   ├── README.md                 # Index de la documentation
+│   └── USER_STORIES.md           # Backlog détaillé & suivi d'avancement (V1 / V2 / V3)
+├── AGENTS.md                     # Principes d'ingénierie (KISS/DRY/SOLID) & conventions
 ├── .env.example                  # Modèle de variables d'environnement
 ├── .gitignore
 └── README.md
@@ -58,6 +61,8 @@ tripmint/
 ---
 
 ## Roadmap Fonctionnelle
+
+> Le détail complet de toutes les User Stories et leur état d'avancement est suivi dans [docs/USER_STORIES.md](docs/USER_STORIES.md).
 
 ### V1 — Socle & Recherche de Vols (MVP)
 * Initialisation du monorepo (Spring MVC, Flyway, H2 local / PostgreSQL prod, Angular 22+ Zoneless, CI GitHub Actions).
@@ -114,6 +119,7 @@ Pour exécuter l'application sur **PostgreSQL**, définir `SPRING_PROFILES_ACTIV
 
 ## Workflow de Développement
 
-1. Chaque fonctionnalité ou tâche technique fait l'objet d'une **User Story** créée depuis `.github/ISSUE_TEMPLATE/user_story.md`.
-2. Développement isolé sur une branche dédiée (`feature/<id>-nom-fonctionnalite`).
-3. Ouverture d'une **Pull Request** vers `main`, validée automatiquement par la CI GitHub Actions (`./mvnw test` + `npm ci && npm run build`).
+1. Chaque fonctionnalité ou tâche technique fait l'objet d'une **User Story** créée depuis `.github/ISSUE_TEMPLATE/user_story.md` et suivie dans `docs/USER_STORIES.md`.
+2. Développement isolé sur une branche dédiée (`feature/<id>-nom-fonctionnalite`, `fix/<id>-...`, `chore/<id>-...`) créée depuis `develop`.
+3. Ouverture d'une **Pull Request vers `develop`**, validée automatiquement par la CI GitHub Actions (`./mvnw test` + `npm ci && npm run build`).
+4. À chaque jalon (**V1**, **V2**, **V3**…), ouverture d'une **Pull Request de `develop` vers `main`** pour valider et livrer la version.
