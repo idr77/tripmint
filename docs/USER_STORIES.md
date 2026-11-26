@@ -25,8 +25,8 @@ Ce document sert de **tableau de suivi type JIRA** pour **TripMint**. Conformém
 
 | ID | EPIC | Jalon | Titre | Issue GitHub | Statut | Commits liés |
 | :--- | :---: | :---: | :--- | :---: | :--- | :--- |
-| **US-01** | EPIC-01 | V1 | Configuration du dépôt Git, `AGENTS.md`, doc métier/ADR & CI (`develop`/`main`) | `#1` | 🟡 Prêt à merger *(protections GitHub à vérifier)* | `dc00ded`, `1d79c98`, `2d9339a` |
-| **US-02** | EPIC-01 | V1 | Environnement local PostgreSQL 18 via Docker Compose | `#2` | 🟡 En cours *(`config` OK, `up -d` à valider sur Docker Desktop)* | `329574f` |
+| **US-01** | EPIC-01 | V1 | Configuration du dépôt Git, `AGENTS.md`, doc métier/ADR & CI (`develop`/`main`) | `#1` | 🟡 Prêt à merger *(protections GitHub à vérifier)* | `dc00ded`, `1d79c98`, `2d9339a`, `25a6d37` |
+| **US-02** | EPIC-01 | V1 | Environnement local PostgreSQL 18 via Docker Compose | `#2` | 🟡 Prêt à merger sur `develop` *(validé en runtime + Flyway `prod` OK)* | `329574f` |
 | **US-03** | EPIC-01 | V1 | Socle Back-end Spring MVC (Java 25, Spring Boot 4, Flyway, H2/PostgreSQL, erreurs) | `#3` *(adaptée)* | 🟡 Prêt à merger sur `develop` | `dc00ded` |
 | **US-04** | EPIC-01 | V1 | Socle Front-end Angular 22+ Standalone Zoneless / Signals & proxy `/api` | — | 🟡 Prêt à merger sur `develop` | `dc00ded` |
 | **US-05** | EPIC-02 | V1 | Contrats JSON `/api/v1/*`, diagrammes UML & modèle de données V1 (`docs/`) | — | ⚪ À faire | — |
@@ -58,7 +58,8 @@ Ce document sert de **tableau de suivi type JIRA** pour **TripMint**. Conformém
 | 2026-11-25 | `1d79c98` | `chore/init-skeleton` | US-01 / EPIC-01 | Alignement workflow PR (`develop` pour features, `main` pour jalons), déclenchement CI sur `develop`/`main` et création du backlog |
 | 2026-11-26 | `329574f` | `chore/init-skeleton` | US-02 / EPIC-01 | Ajout de `docker-compose.yml` (`postgres:18-alpine`, volume `/var/lib/postgresql`, healthcheck `pg_isready`) et variables `DB_NAME`/`DB_PORT` |
 | 2026-11-26 | `2d9339a` | `chore/init-skeleton` | US-01 / EPIC-01 | Enrichissement de la CI (tests Vitest, validation Docker Compose, `push` sur `develop`/`main`, `concurrency`) |
-| 2026-11-26 | *(commit courant)* | `chore/init-skeleton` | US-01 / EPIC-01 | Recentrage métier du `README.md` (personas, parcours, EPICs → archi), ajout `docs/ARCHITECTURE.md` (ADR, faiblesses, Signals, NoSQL, transactions), suivi JIRA et règles IA dans `AGENTS.md` |
+| 2026-11-26 | `25a6d37` | `chore/init-skeleton` | US-01 / EPIC-01 | Recentrage métier du `README.md` (personas, parcours, EPICs → archi), ajout `docs/ARCHITECTURE.md` (ADR, faiblesses, Signals, NoSQL, transactions), suivi JIRA et règles IA dans `AGENTS.md` |
+| 2026-11-26 | *(commit courant)* | `chore/init-skeleton` | US-02 / EPIC-01 | Validation runtime Docker Compose PostgreSQL 18.7 (`healthy`, persistance volume après redémarrage, tests Spring Boot/Flyway en profil `prod` OK) |
 
 ---
 
@@ -67,7 +68,7 @@ Ce document sert de **tableau de suivi type JIRA** pour **TripMint**. Conformém
 | Issue GitHub | Titre actuel | Statut / Action recommandée |
 | :--- | :--- | :--- |
 | **#1** | *Mise en place du dépot Git* | **Alignée sur US-01** — Tous les fichiers dépôt/doc/CI sont prêts sur `chore/init-skeleton`. Activer les protections de branches sur `develop` et `main` dans GitHub puis fermer au merge vers `develop`. |
-| **#2** | *Mise en place de l'environnement local PostgreSQL via Docker Compose* | **Alignée sur US-02** — `docker-compose.yml` validé syntaxiquement. Lancer `docker compose up -d` une fois Docker Desktop démarré pour valider le statut `healthy`, puis fermer au merge vers `develop`. |
+| **#2** | *Mise en place de l'environnement local PostgreSQL via Docker Compose* | **Alignée sur US-02** — Validée en runtime (`postgres:18-alpine` `healthy`, persistance volume après restart, migrations Flyway + Hibernate `validate` OK en profil `prod`). Prête à fermer au merge vers `develop`. |
 | **#3** | *Initialisation du squelette Back-end Spring Boot 4 & Spring Modulith* | **Adaptée en US-03 (Spring MVC classique)** — Recentrage V1 sans Spring Modulith, sans Virtual Threads et sans Auth. Mettre à jour le titre/description de `#3` puis fermer au merge vers `develop`. |
 
 ---
@@ -90,14 +91,14 @@ Ce document sert de **tableau de suivi type JIRA** pour **TripMint**. Conformém
   - [ ] PR `chore/init-skeleton` → `develop` mergée avec CI verte
 
 #### US-02 — Environnement local PostgreSQL 18 via Docker Compose
-* **Statut :** 🟡 En cours *(Issue `#2`)*
+* **Statut :** 🟡 Prêt à merger sur `develop` *(Issue `#2`)*
 * **Besoin :** En tant que développeur back-end, je veux démarrer une instance PostgreSQL 18 isolée via Docker Compose, afin de tester mon application sur la vraie base cible sans installation système.
 * **Critères d'acceptation :**
   - [x] `docker-compose.yml` créé avec `postgres:18-alpine`
   - [x] Identifiants, nom de base et port (`DB_PORT`, défaut `5432`) configurés via `.env` / `.env.example`
   - [x] Volume persistant `tripmint_postgres_data:/var/lib/postgresql` (conforme PostgreSQL 18)
   - [x] Healthcheck `pg_isready` configuré et validé par `docker compose config`
-  - [ ] Démarrage `docker compose up -d` et statut `healthy` validés sur Docker Desktop
+  - [x] Démarrage `docker compose up -d`, statut `healthy`, persistance volume après redémarrage et exécution Flyway/Hibernate (`SPRING_PROFILES_ACTIVE=prod`) validés sur Docker Desktop
   - [ ] Mergé dans `develop`
 
 #### US-03 — Socle Back-end Spring MVC + Flyway (H2 / PostgreSQL)
