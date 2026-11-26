@@ -1,100 +1,88 @@
-# Architecture, Décisions & Compromis (ADR) — TripMint
+# Décisions d'Architecture (ADR) & Compromis — TripMint
 
-Ce document rassemble les choix structurants de **TripMint**, leur **justification par rapport au besoin métier**, ainsi que leurs **faiblesses/limites selon le contexte** et les critères qui déclencheront une évolution.
+Chaque décision d'architecture ci-dessous **découle explicitement d'un besoin fonctionnel** ([USER_STORIES.md](USER_STORIES.md)) et documente ses **faiblesses selon le contexte** ainsi que l'**EPIC technique** chargée de la faire évoluer lorsque le contexte changera.
+
+Pour l'arborescence du dépôt et la trajectoire d'évolution par phase, voir [ArchitectureRoadMap.md](ArchitectureRoadMap.md).
 
 ---
 
-## 1. Décisions d'Architecture (ADR)
-
-### ADR-01 — Monolithe Spring MVC classique en V1 (sans Spring Modulith ni Microservices)
-* **Décision :** Architecture en couches classique (`config`, `controller`, `service`, `client`, `repository`, `model`) sous `com.tripmint`, avec sous-package dédié par fournisseur externe (`client.amadeus`).
-* **Pourquoi :** En V1, un seul domaine métier principal existe (recherche de vols). Un monolithe simple maximise la vitesse d'exécution, la lisibilité et le débogage.
+## ADR-01 — Monolithe Spring MVC classique en V1 (sans Spring Modulith ni Microservices)
+* **Besoin fonctionnel / EPIC lié :** `EPIC-F1` & `EPIC-F2` (livrer vite un MVP de recherche de vols) → `EPIC-T1` / `EPIC-T2`.
+* **Décision :** Architecture en couches simple sous `com.tripmint` (`config`, `controller`, `exception`, `service`, `repository`, `model`, et `client.<fournisseur>` dès `EPIC-T2`).
+* **Pourquoi :** Un seul domaine métier actif en V1 (la recherche de vols). Maximise la lisibilité, le débogage et la vélocité.
 * **Faiblesses & Compromis :**
-  * Pas de frontières de modules vérifiées à la compilation : un développeur peut coupler deux services par inattention si les revues de PR sont laxistes.
-  * Le déploiement est tout-ou-rien (impossible de scaler uniquement la recherche indépendamment des alertes).
-* **Quand reconsidérer :** À l'apparition d'un 2e vrai domaine métier (V2 : alertes, authentification) → pivoter vers du **Package by Feature** (`common/`, `search/`, `pricing/`, `alert/`, `user/`). Envisager l'extraction d'un service dédié uniquement si la charge ou les équipes le justifient (Phase 3–4).
+  * Aucun contrôle de modularité à la compilation : un couplage involontaire entre domaines reste possible si la revue de PR est légère.
+  * Scalabilité globale (tout le back-end scale ensemble).
+* **Condition de révision / EPIC technique :** À l'introduction des comptes et alertes (**`EPIC-F3` / `EPIC-T5`**), basculer vers du **Package by Feature** (`common/`, `search/`, `pricing/`, `alert/`, `user/`).
 
 ---
 
-### ADR-02 — Flyway dès la V1 + H2 (`MODE=PostgreSQL`) en local/tests + PostgreSQL 18 (Docker & Prod)
-* **Décision :** Toutes les évolutions de schéma passent par des scripts Flyway (`V<n>__*.sql`) en SQL standard, validés au démarrage par Hibernate (`ddl-auto: validate`). Le profil `local` utilise H2 en mémoire (`MODE=PostgreSQL`), tandis que `docker-compose.yml` fournit un PostgreSQL 18 isolé pour le pré-prod local.
-* **Pourquoi :** Zéro friction pour lancer les tests (`./mvnw test`) et la CI en quelques secondes, tout en gardant un vrai PostgreSQL 18 à portée de main.
-* **Faiblesses & Compromis :**
-  * **H2 en mode PostgreSQL n'est pas 100 % identique à PostgreSQL :** certaines fonctionnalités avancées (`JSONB`, index `GIN`, certaines *Window Functions* ou syntaxes `UPSERT`) divergent entre H2 et PostgreSQL.
-  * Risque de « faux vert » en CI si une requête SQL passe sur H2 mais échoue sur PostgreSQL 18.
-* **Mitigation & Quand reconsidérer :**
-  * Rester strictement sur du SQL standard en V1.
-  * Dès la V2 (requêtes analytiques / *Window Functions* PostgreSQL), ajouter **Testcontainers (PostgreSQL 18)** ou un service `postgres:18-alpine` dans GitHub Actions pour exécuter les tests d'intégration sur le vrai moteur PostgreSQL.
-
----
-
-### ADR-03 — Pas de Virtual Threads ni d'Authentification en V1
+## ADR-02 — Flyway dès la V1 + H2 (`MODE=PostgreSQL`) en local/tests + `backend/docker-compose.yml` (PostgreSQL 18)
+* **Besoin fonctionnel / EPIC lié :** Fiabilité du schéma dès `EPIC-F1` (`search_logs`), puis requêtes analytiques en `EPIC-F3` → `EPIC-T1`, `EPIC-T4`.
 * **Décision :**
-  * **Virtual Threads** (`spring.threads.virtual.enabled=true`) volontairement non activés en Phase 1.
-  * **Authentification / Spring Security / JWT** volontairement reportés en V2.
-* **Pourquoi :**
-  * En V1, la recherche de vols s'appuie sur un fournisseur unique (Amadeus sandbox, fortement limité en *rate-limit*) : les Virtual Threads n'apportent aucun gain mesurable et risquent au contraire de saturer le quota API ou le pool de connexions JDBC (`HikariCP`).
-  * L'authentification n'apporte aucune valeur métier au parcours principal V1 (rechercher un vol pas cher) et ralentit le MVP.
+  * Migrations SQL versionnées Flyway dès la V1 (`ddl-auto: validate`).
+  * Profil `local` par défaut sur H2 en mémoire (`MODE=PostgreSQL`) pour un démarrage et une CI ultra-rapides.
+  * Instance PostgreSQL 18 isolée dans **`backend/docker-compose.yml`** (séparée du front-end pour éviter un compose monolithique complexe).
 * **Faiblesses & Compromis :**
-  * Sans authentification, la V1 ne permet ni favoris persistants ni alertes personnalisées ; l'API publique devra être protégée par du *rate-limiting* en exposition publique.
-* **Quand reconsidérer :**
-  * **Authentification :** dès **EPIC-04 (V2)** pour les recherches favorites et alertes.
-  * **Virtual Threads :** dès que plusieurs fournisseurs (avion + train + hébergement) ou de nombreux appels I/O indépendants doivent être parallélisés (V3 / Phase 3–4), avec mesure de charge et bornage par `Semaphore` / `Bulkhead`.
+  * **H2 ≠ PostgreSQL à 100 % :** les fonctionnalités spécifiques PostgreSQL (`JSONB`, index `GIN`, certaines *Window Functions* ou `UPSERT`) peuvent passer sur H2 et échouer en prod — ou inversement.
+  * Un compose séparé dans `backend/` demande une commande dédiée pour lancer la BDD, puis un orchestrateur séparé si le front est conteneurisé plus tard.
+* **Condition de révision / EPIC technique :** **`EPIC-T4` (`US-T13`)** introduira **Testcontainers (PostgreSQL 18)** dès les premières requêtes SQL avancées de `EPIC-F3`.
 
 ---
 
-### ADR-04 — Retours API, Gestion d'Erreurs & Transactions (`@Transactional`)
+## ADR-03 — Isolation du fournisseur de vols par Adapter (pivot post-fermeture Amadeus Self-Service)
+* **Besoin fonctionnel / EPIC lié :** `EPIC-F1` & `EPIC-F2` (données de vols réelles ou sandbox fiables) → `EPIC-T2`.
+* **Contexte clé :** Le portail **Amadeus for Developers Self-Service** (tier gratuit) a été **définitivement fermé le 17 juillet 2026** (accès désormais uniquement Enterprise sur contrat + accréditation IATA).
+* **Décision :** Définir une interface métier `FlightProvider` dans le back-end et isoler tout fournisseur externe derrière un **Adapter** (`com.tripmint.client.<fournisseur>`) + un stub/mock pour les tests/CI. En V1, le choix se porte sur **Duffel API (Test Mode 100 % gratuit, illimité)** ou **SerpApi (Google Flights, 250 recherches/mois réelles)** — décision actée dans `PRD-F1.md` (`US-T05`).
+* **Faiblesses & Compromis :**
+  * Duffel Test Mode fournit des tarifs simulés (non réels) ; SerpApi fournit de vrais prix mais avec un quota mensuel très bas (250 appels/mois, vite consommé par les dates flexibles de `EPIC-F2`).
+  * Ajouter une couche Adapter ajoute un mapping supplémentaire (léger, mais justifié ici par un fait concret : un fournisseur externe peut disparaître !).
+* **Condition de révision / EPIC technique :** **`EPIC-T6` (`US-T18`)** étendra ce contrat en pattern **Strategy** (`TransportProvider` / `StayProvider`) pour supporter train et hébergement (`EPIC-F4`).
+
+---
+
+## ADR-04 — Absence volontaire d'Authentification et de Virtual Threads en V1
+* **Besoin fonctionnel / EPIC lié :** `EPIC-F1` & `EPIC-F2` ne nécessitent pas de compte utilisateur et n'interrogent qu'un seul fournisseur.
+* **Décision :** Pas de Spring Security / JWT ni de `spring.threads.virtual.enabled=true` en V1.
+* **Faiblesses & Compromis :**
+  * Sans auth, impossible de persister des favoris ou alertes par utilisateur en V1, et l'API devra être protégée par du rate-limiting si exposée publiquement.
+  * Sans Virtual Threads, les appels synchrones multiples (`EPIC-F2`, dates flexibles) restent séquentiels ou sur pool borné classique — volontaire en V1 pour ne pas exploser le rate-limit fournisseur ni le pool JDBC.
+* **Condition de révision / EPIC technique :**
+  * Auth → **`EPIC-T5` (`US-T15`)** pour servir `EPIC-F3`.
+  * Virtual Threads bornés → **`EPIC-T6` (`US-T19`)** pour paralléliser les appels multi-fournisseurs de `EPIC-F4`.
+
+---
+
+## ADR-05 — Stratégie Erreurs API (`exception/`) & Frontières Transactionnelles (`@Transactional`)
+* **Besoin fonctionnel / EPIC lié :** `US-F04` (retours clairs en cas d'erreur de saisie ou de panne fournisseur) + intégrité BDD → `EPIC-T1`, `EPIC-T2`.
 * **Décision :**
-  * Toutes les erreurs REST passent par `GlobalExceptionHandler` (`@RestControllerAdvice`) et renvoient un contrat unique `ApiError` (`timestamp`, `status`, `error`, `message`, `path`, `fieldErrors`).
-  * `spring.jpa.open-in-view: false` pour interdire les requêtes SQL cachées pendant la sérialisation JSON.
-  * Règles strictes de démarcation transactionnelle :
-    * `@Transactional(readOnly = true)` par défaut sur les méthodes de lecture en service.
-    * `@Transactional` uniquement sur les opérations d'écriture courtes en base de données.
-    * **Règle d'or :** ne **jamais** englober un appel HTTP externe (ex. Amadeus) dans une transaction `@Transactional` — cela bloque une connexion JDBC du pool `HikariCP` pendant toute la latence réseau (et provoque un épuisement du pool sous charge).
+  * `GlobalExceptionHandler` (`@RestControllerAdvice`) et `ApiError` isolés dans un package dédié **`com.tripmint.exception`** (hors `controller/`).
+  * `spring.jpa.open-in-view: false` pour interdire le chargement paresseux caché dans les contrôleurs.
+  * Règles `@Transactional` : `@Transactional(readOnly = true)` par défaut en lecture, `@Transactional` uniquement sur des écritures courtes, et **jamais autour d'un appel HTTP externe** (afin de ne pas bloquer une connexion JDBC `HikariCP` pendant la latence réseau).
 * **Faiblesses & Compromis :**
-  * Séparer appel externe et persistance implique qu'un échec d'écriture après un appel Amadeus ne « rollback » pas l'appel externe (acceptable ici car la recherche est en lecture côté fournisseur ; critique si un jour on ajoute la réservation).
-  * Avec `open-in-view: false`, charger une relation `LAZY` hors transaction lève une `LazyInitializationException` — cela force à écrire explicitement des `JOIN FETCH` ou des projections DTO (ce qui est volontaire pour éviter le problème **N+1**).
+  * Découpler appel HTTP et transaction implique l'absence de rollback distribué (acceptable pour la recherche en lecture ; demanderait un pattern Outbox / Saga si une réservation transactionnelle était ajoutée).
+  * `open-in-view: false` peut provoquer des `LazyInitializationException` si une relation `LAZY` est accédée hors service — c'est un garde-fou volontaire contre le problème **N+1**.
 
 ---
 
-## 2. Front-end Angular : Signals & Zoneless vs ce qui existait avant
+## ADR-06 — Front-end Angular 22+ Standalone, Zoneless & Signals (vs l'existant historique)
+* **Besoin fonctionnel / EPIC lié :** `EPIC-F1` & `EPIC-F2` (formulaire réactif, filtres rapides, états chargement/erreur fluides) → `EPIC-T1`, `EPIC-T2`.
+* **Décision :** Angular 22+ en **Standalone Components**, mode **Zoneless** (sans `zone.js`) et **Signals** (`signal`, `computed`, `effect`), complété par **RxJS** uniquement pour les flux asynchrones complexes (`HttpClient`, `switchMap`, `debounceTime`, annulation).
 
-TripMint démarre directement en **Angular 22+ Standalone + Signals + Zoneless**. Voici le comparatif pour bien situer ce choix face aux générations précédentes d'Angular :
-
-| Axe | Avant (Angular 2 → 16) | Maintenant (Angular 17 → 22+, choix TripMint) | Ce qu'il faut retenir / Faiblesses |
+| Axe | Avant (Angular 2 → 16) | Choix TripMint (Angular 22+) | Faiblesse / Vigilance |
 | :--- | :--- | :--- | :--- |
-| **Structure** | `NgModule` obligatoires (boilerplate, imports indirects) | **Standalone Components** (imports explicites par composant) | Plus simple et meilleur *tree-shaking*. Attention à ne pas importer trop de dépendances dans un seul gros composant. |
-| **Détection de changement** | **`Zone.js`** interceptait tous les événements JS (`setTimeout`, `click`, `Promise`) et vérifiait toute l'arborescence de composants (d'où le besoin de `ChangeDetectionStrategy.OnPush` pour limiter les dégâts) | **Zoneless** : Angular ne met à jour le DOM que lorsque un **Signal** change (ou `async` pipe / événement template / `markForCheck`) | Bundle plus léger, performances prévisibles, stacktraces propres. **Faiblesse :** une variable JS mutée « à la main » hors Signal ne rafraîchit plus l'écran (piège classique quand on vient d'Angular historique ou qu'on intègre une lib tierce non réactive). |
-| **Gestion d'état** | Propriétés mutables + **`RxJS` (`BehaviorSubject`, `combineLatest`, `async` pipe, gestion manuelle des `unsubscribe`)** | **Angular Signals** (`signal`, `computed`, `effect`) pour l'état synchrone/UI ; **RxJS** réservé aux flux asynchrones complexes (`HttpClient`, `debounceTime`, `switchMap`, annulation de requêtes) | Signals = zéro fuite mémoire, lecture synchrone simple, dépendances automatiques. **Faiblesse :** Signals ne remplacent pas RxJS pour les flux événementiels complexes (annulation HTTP, retry, websockets) → les deux sont complémentaires (`toSignal` / `rxResource`). |
+| **Modules** | `NgModule` obligatoires | **Standalone Components** | Attention à garder des composants petits avec peu d'imports. |
+| **Change Detection** | `Zone.js` vérifiait tout l'arbre (d'où `OnPush`) | **Zoneless** (mise à jour ciblée sur changement de Signal) | Une propriété mutée hors Signal ne rafraîchit plus la vue (piège avec libs tierces non réactives). |
+| **État** | `BehaviorSubject` + `async` pipe + `unsubscribe` | **Signals** (synchrone, sans fuite mémoire) + **RxJS** pour HTTP/flux | Deux paradigmes à articuler proprement (`toSignal`) sans mélanger les rôles. |
+
+* **Action de suivi :** Auditer les conventions front (formulaire, gestion d'état, composants partagés) lors du passage à `EPIC-T2` (`US-T08`) et compléter la couverture par **Playwright** en **`EPIC-T4` (`US-T11`)**.
 
 ---
 
-## 3. Challenge NoSQL : MongoDB & Apache Spark — Utile ou Sur-ingénierie ?
-
-Question posée en réunion : *« Comment ajouter MongoDB / Spark (NoSQL) ? »*
-
-### Analyse honnête par phase
-
-| Technologie | Ce qu'elle résout vraiment | Pertinence en **V1** | Pertinence potentielle en **V2 / V3 / Phase 4** |
-| :--- | :--- | :--- | :--- |
-| **MongoDB (Document NoSQL)** | Stockage de documents JSON très hétérogènes à schéma variable, fort volume d'écriture non relationnel | ❌ **Non pertinent en V1** : on a un schéma simple et structuré (`search_logs`), et **PostgreSQL 18 gère nativement `JSONB`** (indexable avec `GIN`) si on veut archiver des payloads bruts Amadeus. Ajouter MongoDB en V1 doublerait la complexité ops (2 BDD, 2 modèles de sauvegarde, pas de transactions ACID cross-DB) sans gain. | 🟡 **Défendable en V3 uniquement** si on agrège de nombreux fournisseurs aux schémas très hétérogènes (avion + train + hôtels + métadonnées brutes) en tant que **cache/archive documentaire** (modèle *Polyglot Persistence* : PostgreSQL pour les comptes/alertes/transactions, MongoDB pour les catalogues d'offres brutes à TTL court). |
-| **Apache Spark (Traitement distribué Big Data)** | Calcul distribué sur des téraoctets de données / millions d'événements par heure | ❌ **Sur-ingénierie totale en V1/V2** : sur quelques milliers ou millions de relevés tarifaires, des requêtes SQL analytiques PostgreSQL (**Window Functions**, vues matérialisées) répondent en quelques millisecondes. | 🟡 **Pertinent uniquement en Phase 4 (très grande échelle)** si TripMint ingère des millions de relevés de prix/jour pour entraîner des modèles de prédiction tarifaire batch (ML / Spark SQL). |
-
-**Conclusion pragmatique :**
-* **V1–V2 :** 100 % **PostgreSQL 18** (en exploitant `JSONB` si besoin d'archiver des réponses brutes fournisseurs, et les *Window Functions* SQL pour l'analyse de tendances).
-* **V3–V4 :** réévaluer MongoDB (stockage d'offres multi-fournisseurs avec TTL) uniquement sur constat de douleur réelle, jamais par anticipation.
-
----
-
-## 4. Qualité, Tests E2E & Infrastructure Cible (Playwright, SonarQube, Kubernetes)
-
-* **Tests E2E Playwright (fin V1 / V2) :**
-  * Complète JUnit (back) et Vitest (front) en validant les **parcours utilisateurs complets** (P1 et P2) dans un vrai navigateur contre le front Angular + back Spring Boot.
-  * **Faiblesse :** plus lents et plus fragiles que les tests unitaires → limiter les E2E aux parcours critiques (« happy paths » + 1 cas d'erreur API) et mocker Amadeus en CI pour éviter la dépendance réseau.
-* **SonarQube / SonarCloud (V2, ou dès que le code métier arrive en V1) :**
-  * Analyse statique continue dans GitHub Actions (code smells, dette technique, bugs potentiels, couverture JaCoCo/Vitest, règles de sécurité).
-  * **Faiblesse :** ne remplace pas la revue de conception ni la qualité des assertions de test (une couverture à 80 % sans bonnes assertions reste trompeuse).
-* **Kubernetes (Phase 3–4) :**
-  * Volontairement **hors V1 et V2** (un PaaS managé ou Docker Compose suffit largement).
-  * Pertinent en Phase 3–4 si TripMint passe en déploiement multi-instances (autoscaling horizontal, *rolling updates* sans coupure, gestion déclarative des secrets/CronJobs de relevé de prix).
-  * **Faiblesse :** fort coût opérationnel et cognitif (manifests/Helm, ingress, observabilité, gestion des migrations Flyway en multi-réplicas).
+## ADR-07 — Challenge NoSQL (MongoDB / Spark) & Infrastructure (Playwright, SonarQube, Kubernetes)
+* **Besoin fonctionnel / EPIC lié :** Préparer l'évolution long terme (`EPIC-F3`, `EPIC-F4`) sans sur-ingénierie en V1 → `EPIC-T4`, `EPIC-T6`.
+* **Analyse critique :**
+  * **MongoDB :** ❌ Non pertinent en V1/V2 (données relationnelles simples + PostgreSQL 18 gère `JSONB` + index `GIN`). 🟡 À réévaluer en **`EPIC-T6` (`US-T20`)** uniquement si des catalogues d'offres multi-fournisseurs très hétérogènes à TTL court justifient une persistance polyglotte.
+  * **Apache Spark :** ❌ Surdimensionné tant que le volume reste sous plusieurs millions d'événements/jour ; les **Window Functions PostgreSQL** (`EPIC-T5` / `US-T14`) couvrent largement l'analyse tarifaire.
+  * **Playwright & SonarQube :** Planifiés en **`EPIC-T4` (`US-T11`, `US-T12`)** dès que les premiers parcours utilisateur (`EPIC-F1`) existent.
+  * **Kubernetes :** Reporté en **Phase 3–4 (`EPIC-T6` / `US-T20`)** en raison de son coût opérationnel (manifests/Helm, ingress, observabilité, coordination Flyway multi-réplicas).
